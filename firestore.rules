@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can read/write their own documents
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Users can read/write their own collections
+    match /users/{userId}/collections/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Users can read/write their own items
+    match /users/{userId}/items/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Public templates can be read by anyone, written by authenticated users
+    match /templates/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Template marketplace entries
+    match /marketplace/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+  }
+}
