@@ -1,0 +1,30 @@
+{
+  "project": "favorites-tracker-bc071",
+  "testMatrix": {
+    "testSpecification": {
+      "iosXcTest": {
+        "testsZip": {
+          "gcsPath": "gs://favorites-tracker-bc071-test-lab/FavoritesTracker-Test.zip"
+        }
+      }
+    },
+    "environmentMatrix": {
+      "iosDeviceList": {
+        "iosDevices": [
+          {
+            "iosModelId": "iphone11pro",
+            "iosVersionId": "15.7",
+            "locale": "en_US",
+            "orientation": "portrait"
+          },
+          {
+            "iosModelId": "iphone13",
+            "iosVersionId": "16.6", 
+            "locale": "en_US",
+            "orientation": "portrait"
+          }
+        ]
+      }
+    }
+  }
+}
