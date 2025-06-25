@@ -1,5 +1,4 @@
 import Foundation
-import UIKit
 @testable import FavoritesTracker
 
 /// Test configuration and sample data
@@ -146,30 +145,6 @@ struct TestData {
         static let authenticationError = NSError(domain: "TestAuthError", code: 401, userInfo: [NSLocalizedDescriptionKey: "Authentication required"])
         static let validationError = NSError(domain: "TestValidationError", code: 400, userInfo: [NSLocalizedDescriptionKey: "Invalid input data"])
         static let notFoundError = NSError(domain: "TestNotFoundError", code: 404, userInfo: [NSLocalizedDescriptionKey: "Resource not found"])
-    }
-}
-
-/// Common test errors for mock repositories
-enum TestError: LocalizedError {
-    case mockNotConfigured
-    case mockDataNotFound
-    case mockOperationFailed
-    case mockNetworkError
-    case mockAuthenticationError
-    
-    var errorDescription: String? {
-        switch self {
-        case .mockNotConfigured:
-            return "Mock repository not properly configured"
-        case .mockDataNotFound:
-            return "Mock data not found"
-        case .mockOperationFailed:
-            return "Mock operation failed"
-        case .mockNetworkError:
-            return "Mock network error"
-        case .mockAuthenticationError:
-            return "Mock authentication error"
-        }
     }
     
     // MARK: - Test Scenarios
