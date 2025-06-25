@@ -132,8 +132,4 @@ private class TestService {
 
 private class TestObjectWithInjection {
     @Inject var testService: TestService
-    
-    init() {
-        // Initialization required for @Inject property wrapper
-    }
 }

@@ -3,7 +3,7 @@ import Foundation
 
 /// Test-specific dependency injection container
 /// Provides clean isolation between tests and easy mock injection
-final class TestDIContainer: @unchecked Sendable {
+final class TestDIContainer {
     
     /// Shared test container instance
     static let shared = TestDIContainer()

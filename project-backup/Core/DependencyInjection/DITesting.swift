@@ -22,11 +22,9 @@ struct DITesting {
     }
     
     /// Set up test environment with mock dependencies
-    /// Note: Test assemblies should be set up in test targets
     static func setupTestEnvironment() {
         DIContainer.shared.clear()
-        // Test dependencies should be registered in test target
-        // via TestServiceAssembly.registerTestDependencies()
+        TestServiceAssembly.registerTestDependencies()
     }
     
     /// Verify that a service is registered
@@ -45,7 +43,7 @@ struct DITesting {
 /// Mock implementations for testing
 /// These will be expanded as we add more services
 
-final class MockUserDefaults: UserDefaults {
+struct MockUserDefaults: UserDefaults {
     private var storage: [String: Any] = [:]
     
     override func object(forKey defaultName: String) -> Any? {

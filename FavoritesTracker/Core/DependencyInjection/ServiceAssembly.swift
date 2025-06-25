@@ -1,9 +1,8 @@
 import Foundation
-// TODO: Firebase imports will be enabled once packages are properly linked
-// import Firebase
-// import FirebaseAuth
-// import FirebaseFirestore
-// import FirebaseStorage
+import Firebase
+import FirebaseAuth
+import FirebaseFirestore
+import FirebaseStorage
 
 /// Service Assembly for registering all app dependencies
 /// Follows Clean Architecture principles with proper layer separation
@@ -20,15 +19,39 @@ struct ServiceAssembly {
     // MARK: - Data Layer Dependencies
     
     private static func registerRepositories() {
-        // TODO: Firebase services will be registered once packages are properly linked
-        // DIContainer.shared.register(Auth.self, instance: Auth.auth())
-        // DIContainer.shared.register(Firestore.self, instance: Firestore.firestore())
-        // DIContainer.shared.register(Storage.self, instance: Storage.storage())
+        // Firebase services
+        DIContainer.shared.register(Auth.self, instance: Auth.auth())
+        DIContainer.shared.register(Firestore.self, instance: Firestore.firestore())
+        DIContainer.shared.register(Storage.self, instance: Storage.storage())
         
-        // Repository implementations will be registered here
-        // DIContainer.shared.register(ItemRepositoryProtocol.self, factory: {
-        //     FirebaseItemRepository()
-        // })
+        // Repository Provider (centralized access to all repositories)
+        DIContainer.shared.register(RepositoryProvider.self, instance: RepositoryProvider.shared)
+        
+        // Individual repository implementations
+        DIContainer.shared.register(ItemRepositoryProtocol.self, factory: {
+            RepositoryProvider.shared.itemRepository
+        })
+        
+        DIContainer.shared.register(CollectionRepositoryProtocol.self, factory: {
+            RepositoryProvider.shared.collectionRepository
+        })
+        
+        DIContainer.shared.register(TemplateRepositoryProtocol.self, factory: {
+            RepositoryProvider.shared.templateRepository
+        })
+        
+        DIContainer.shared.register(UserRepositoryProtocol.self, factory: {
+            RepositoryProvider.shared.userRepository
+        })
+        
+        DIContainer.shared.register(AuthRepositoryProtocol.self, factory: {
+            RepositoryProvider.shared.authRepository
+        })
+        
+        DIContainer.shared.register(StorageRepositoryProtocol.self, factory: {
+            RepositoryProvider.shared.storageRepository
+        })
+        
     }
     
     // MARK: - Domain Layer Dependencies
@@ -55,39 +78,8 @@ struct ServiceAssembly {
         // Core services
         DIContainer.shared.register(UserDefaults.self, instance: UserDefaults.standard)
         
-        // Network and utility services will be registered here
-        // DIContainer.shared.register(NetworkManager.self, factory: {
-        //     NetworkManager()
-        // })
+        // Network monitoring
+        DIContainer.shared.register(NetworkMonitor.self, instance: NetworkMonitor())
     }
 }
 
-/// Test assembly for unit testing with mock dependencies
-struct TestServiceAssembly {
-    
-    static func registerTestDependencies() {
-        // Clear existing registrations
-        DIContainer.shared.clear()
-        
-        // Register mock implementations
-        registerMockRepositories()
-        registerMockUseCases()
-        registerMockServices()
-    }
-    
-    private static func registerMockRepositories() {
-        // Mock repository implementations will be registered here
-        // DIContainer.shared.register(ItemRepositoryProtocol.self, factory: {
-        //     MockItemRepository()
-        // })
-    }
-    
-    private static func registerMockUseCases() {
-        // Mock use cases will be registered here
-    }
-    
-    private static func registerMockServices() {
-        // Mock services
-        DIContainer.shared.register(UserDefaults.self, instance: UserDefaults(suiteName: "test")!)
-    }
-}
