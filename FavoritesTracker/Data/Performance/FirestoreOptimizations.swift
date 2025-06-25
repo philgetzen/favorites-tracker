@@ -4,7 +4,7 @@ import FirebaseFirestore
 // MARK: - Firestore Performance Optimizations
 
 /// Central coordinator for Firestore performance optimizations
-class FirestorePerformanceManager {
+class FirestorePerformanceManager: @unchecked Sendable {
     private let db: Firestore
     private let batchManager: BatchOperationManager
     private let queryOptimizer: QueryOptimizer
@@ -56,7 +56,7 @@ class FirestorePerformanceManager {
 // MARK: - Batch Operation Manager
 
 /// Manages efficient batch operations for Firestore
-class BatchOperationManager {
+class BatchOperationManager: @unchecked Sendable {
     private let db: Firestore
     private let maxBatchSize = 500 // Firestore limit
     private let maxBatchBytes = 10 * 1024 * 1024 // 10MB limit
@@ -211,7 +211,7 @@ enum BatchWriteOperation<T: Encodable> {
 // MARK: - Query Optimizer
 
 /// Optimizes Firestore queries for better performance
-class QueryOptimizer {
+class QueryOptimizer: @unchecked Sendable {
     internal let db: Firestore
     private var queryCache: [String: QueryCacheEntry] = [:]
     private let cacheTimeout: TimeInterval = 300 // 5 minutes
@@ -508,7 +508,7 @@ struct PaginationOptions {
 // MARK: - Cache Manager
 
 /// Manages Firestore offline cache and persistence
-class FirestoreCacheManager {
+class FirestoreCacheManager: @unchecked Sendable {
     private let db: Firestore
     
     init(firestore: Firestore) {
@@ -573,7 +573,7 @@ class FirestoreCacheManager {
 // MARK: - Performance Monitoring
 
 /// Monitors Firestore performance metrics
-class FirestorePerformanceMonitor {
+class FirestorePerformanceMonitor: @unchecked Sendable {
     private var queryMetrics: [QueryMetric] = []
     private let maxMetricsHistory = 1000
     

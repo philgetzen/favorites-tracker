@@ -4,7 +4,7 @@ import FirebaseFirestore
 // MARK: - Data Migration Strategy for Schema Evolution
 
 /// Central coordinator for managing database schema evolution and data migrations
-class DataMigrationManager {
+class DataMigrationManager: @unchecked Sendable {
     private let db: Firestore
     private let migrationHistory: MigrationHistoryRepository
     
@@ -88,7 +88,7 @@ protocol Migration {
 }
 
 /// Base class for migrations providing common functionality
-class BaseMigration: Migration {
+class BaseMigration: Migration, @unchecked Sendable {
     let version: SchemaVersion
     let name: String
     let description: String
@@ -147,7 +147,7 @@ struct MigrationRegistry {
 // MARK: - Specific Migrations
 
 /// Migration to add search terms to existing documents
-class AddSearchTermsMigration: BaseMigration {
+class AddSearchTermsMigration: BaseMigration, @unchecked Sendable {
     init() {
         super.init(
             version: .v1_1,
@@ -224,7 +224,7 @@ class AddSearchTermsMigration: BaseMigration {
 }
 
 /// Migration to add location fields to Items
-class AddLocationFieldsMigration: BaseMigration {
+class AddLocationFieldsMigration: BaseMigration, @unchecked Sendable {
     init() {
         super.init(
             version: .v1_2,
@@ -256,7 +256,7 @@ class AddLocationFieldsMigration: BaseMigration {
 }
 
 /// Migration to add subscription information to UserProfile
-class AddSubscriptionInfoMigration: BaseMigration {
+class AddSubscriptionInfoMigration: BaseMigration, @unchecked Sendable {
     init() {
         super.init(
             version: .v1_3,
@@ -288,7 +288,7 @@ class AddSubscriptionInfoMigration: BaseMigration {
 }
 
 /// Migration to add versioning to Templates
-class AddTemplateVersioningMigration: BaseMigration {
+class AddTemplateVersioningMigration: BaseMigration, @unchecked Sendable {
     init() {
         super.init(
             version: .v1_4,
@@ -321,7 +321,7 @@ class AddTemplateVersioningMigration: BaseMigration {
 }
 
 /// Major schema restructure migration (example of breaking changes)
-class MajorSchemaRestructureMigration: BaseMigration {
+class MajorSchemaRestructureMigration: BaseMigration, @unchecked Sendable {
     init() {
         super.init(
             version: .v2_0,
@@ -353,7 +353,7 @@ class MajorSchemaRestructureMigration: BaseMigration {
 // MARK: - Migration History Tracking
 
 /// Repository for tracking migration history
-class MigrationHistoryRepository {
+class MigrationHistoryRepository: @unchecked Sendable {
     private let firestore: Firestore
     private let collectionName = "schema_migrations"
     

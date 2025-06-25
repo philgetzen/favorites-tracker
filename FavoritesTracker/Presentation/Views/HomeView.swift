@@ -5,6 +5,21 @@ struct HomeView: View {
     @StateObject private var viewModel = PreviewSampleViewModel()
     @State private var selectedTab = 0
     
+    // Repository dependencies
+    let itemRepository: ItemRepositoryProtocol
+    let collectionRepository: CollectionRepositoryProtocol
+    let storageRepository: StorageRepositoryProtocol
+    
+    init(
+        itemRepository: ItemRepositoryProtocol = PreviewRepositoryProvider.shared.itemRepository,
+        collectionRepository: CollectionRepositoryProtocol = PreviewRepositoryProvider.shared.collectionRepository,
+        storageRepository: StorageRepositoryProtocol = PreviewRepositoryProvider.shared.storageRepository
+    ) {
+        self.itemRepository = itemRepository
+        self.collectionRepository = collectionRepository
+        self.storageRepository = storageRepository
+    }
+    
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
@@ -131,7 +146,12 @@ struct HomeView: View {
                     GridItem(.flexible())
                 ], spacing: 16) {
                     ForEach(viewModel.items, id: \.id) { item in
-                        ItemCardView(item: item)
+                        ItemCardView(
+                            item: item,
+                            itemRepository: itemRepository,
+                            collectionRepository: collectionRepository,
+                            storageRepository: storageRepository
+                        )
                     }
                 }
                 .padding()

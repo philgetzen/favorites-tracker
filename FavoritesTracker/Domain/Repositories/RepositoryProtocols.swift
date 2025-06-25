@@ -5,7 +5,7 @@ import Combine
 // These protocols define the contract for data access without exposing implementation details
 
 /// Protocol for user authentication operations
-protocol AuthRepositoryProtocol {
+protocol AuthRepositoryProtocol: Sendable {
     func signIn(email: String, password: String) async throws -> User
     func signUp(email: String, password: String) async throws -> User
     func signOut() async throws
@@ -14,7 +14,7 @@ protocol AuthRepositoryProtocol {
 }
 
 /// Protocol for item data operations
-protocol ItemRepositoryProtocol {
+protocol ItemRepositoryProtocol: Sendable {
     func getItems(for userId: String) async throws -> [Item]
     func getItem(id: String) async throws -> Item?
     func createItem(_ item: Item) async throws -> Item
@@ -24,7 +24,7 @@ protocol ItemRepositoryProtocol {
 }
 
 /// Protocol for collection data operations
-protocol CollectionRepositoryProtocol {
+protocol CollectionRepositoryProtocol: Sendable {
     func getCollections(for userId: String) async throws -> [Collection]
     func getCollection(id: String) async throws -> Collection?
     func createCollection(_ collection: Collection) async throws -> Collection
@@ -33,7 +33,7 @@ protocol CollectionRepositoryProtocol {
 }
 
 /// Protocol for template data operations
-protocol TemplateRepositoryProtocol {
+protocol TemplateRepositoryProtocol: Sendable {
     func getTemplates() async throws -> [Template]
     func getTemplate(id: String) async throws -> Template?
     func createTemplate(_ template: Template) async throws -> Template
@@ -44,14 +44,14 @@ protocol TemplateRepositoryProtocol {
 }
 
 /// Protocol for storage operations (images, files)
-protocol StorageRepositoryProtocol {
+protocol StorageRepositoryProtocol: Sendable {
     func uploadImage(_ data: Data, path: String) async throws -> URL
     func deleteImage(at path: String) async throws
     func downloadImage(from url: URL) async throws -> Data
 }
 
 /// Protocol for user profile operations
-protocol UserRepositoryProtocol {
+protocol UserRepositoryProtocol: Sendable {
     func getUserProfile(id: String) async throws -> UserProfile?
     func updateUserProfile(_ profile: UserProfile) async throws -> UserProfile
     func deleteUserProfile(id: String) async throws

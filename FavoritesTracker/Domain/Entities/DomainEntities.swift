@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Core Domain Entities
 
 /// User entity for authentication and profile management
-struct User: Entity, Codable {
+struct User: Entity, Codable, Sendable {
     let id: String
     let email: String
     let displayName: String?
@@ -36,7 +36,7 @@ struct User: Entity, Codable {
 }
 
 /// User profile entity for extended user information
-struct UserProfile: Entity, Codable {
+struct UserProfile: Entity, Codable, Sendable {
     let id: String
     let userId: String
     let displayName: String
@@ -75,7 +75,7 @@ struct UserProfile: Entity, Codable {
 }
 
 /// User preferences for app configuration
-struct UserPreferences: Codable {
+struct UserPreferences: Codable, Sendable {
     let theme: Theme
     let notifications: NotificationSettings
     let privacy: PrivacySettings
@@ -100,7 +100,7 @@ struct UserPreferences: Codable {
 }
 
 /// Notification settings
-struct NotificationSettings: Codable {
+struct NotificationSettings: Codable, Sendable {
     let pushEnabled: Bool
     let emailEnabled: Bool
     let reminderEnabled: Bool
@@ -121,7 +121,7 @@ struct NotificationSettings: Codable {
 }
 
 /// Privacy settings
-struct PrivacySettings: Codable {
+struct PrivacySettings: Codable, Sendable {
     let profilePublic: Bool
     let collectionsPublic: Bool
     let analyticsEnabled: Bool
@@ -142,7 +142,7 @@ struct PrivacySettings: Codable {
 }
 
 /// Subscription information
-struct SubscriptionInfo: Codable {
+struct SubscriptionInfo: Codable, Sendable {
     let plan: SubscriptionPlan
     let status: SubscriptionStatus
     let startDate: Date
@@ -168,7 +168,7 @@ struct SubscriptionInfo: Codable {
 }
 
 /// Collection entity for grouping items
-struct Collection: Entity, Codable, Favoritable, Taggable {
+struct Collection: Entity, Codable, Sendable, Favoritable, Taggable {
     let id: String
     let userId: String
     let name: String
@@ -216,7 +216,7 @@ struct Collection: Entity, Codable, Favoritable, Taggable {
 }
 
 /// Item entity for individual trackable items
-struct Item: Entity, Codable, Favoritable, Taggable {
+struct Item: Entity, Codable, Sendable, Favoritable, Taggable {
     let id: String
     let userId: String
     let collectionId: String
@@ -267,7 +267,7 @@ struct Item: Entity, Codable, Favoritable, Taggable {
 }
 
 /// Template entity for collection templates
-struct Template: Entity, Codable, Favoritable, Taggable {
+struct Template: Entity, Codable, Sendable, Favoritable, Taggable {
     let id: String
     let creatorId: String
     let name: String
@@ -326,7 +326,7 @@ struct Template: Entity, Codable, Favoritable, Taggable {
 // MARK: - Supporting Types
 
 /// Location information for items
-struct Location: Codable {
+struct Location: Codable, Sendable {
     let latitude: Double
     let longitude: Double
     let address: String?
@@ -334,7 +334,7 @@ struct Location: Codable {
 }
 
 /// Custom field value types
-enum CustomFieldValue: Codable {
+enum CustomFieldValue: Codable, Sendable {
     case text(String)
     case number(Double)
     case date(Date)
@@ -355,7 +355,7 @@ enum CustomFieldValue: Codable {
 }
 
 /// Component definition for templates
-struct ComponentDefinition: Codable {
+struct ComponentDefinition: Codable, Sendable {
     let id: String
     let type: ComponentType
     let label: String
@@ -381,7 +381,7 @@ struct ComponentDefinition: Codable {
 }
 
 /// Validation rules for components
-struct ValidationRule: Codable {
+struct ValidationRule: Codable, Sendable {
     let minLength: Int?
     let maxLength: Int?
     let minValue: Double?

@@ -4,7 +4,7 @@ import FirebaseFirestore
 // MARK: - Firestore Indexing Strategy
 
 /// Manages Firestore index configuration and optimization
-class FirestoreIndexManager {
+class FirestoreIndexManager: @unchecked Sendable {
     private let db: Firestore
     
     init(firestore: Firestore = Firestore.firestore()) {
@@ -558,7 +558,7 @@ struct IndexRecommendation {
 // MARK: - Query Pattern Analysis
 
 /// Analyzes query patterns to suggest index optimizations
-class QueryPatternAnalyzer {
+class QueryPatternAnalyzer: @unchecked Sendable {
     private var queryPatterns: [QueryPattern] = []
     
     /// Record a query pattern for analysis

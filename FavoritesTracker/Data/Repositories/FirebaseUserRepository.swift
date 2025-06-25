@@ -4,7 +4,7 @@ import Combine
 
 /// Firebase implementation of UserRepositoryProtocol
 /// Handles Firestore operations for user profiles and settings
-final class FirebaseUserRepository: UserRepositoryProtocol {
+final class FirebaseUserRepository: UserRepositoryProtocol, @unchecked Sendable {
     
     private let firestore: Firestore
     

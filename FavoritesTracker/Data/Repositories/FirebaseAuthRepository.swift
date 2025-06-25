@@ -5,7 +5,7 @@ import Combine
 
 /// Firebase implementation of AuthRepositoryProtocol
 /// Handles Firebase Authentication operations and user management
-final class FirebaseAuthRepository: AuthRepositoryProtocol {
+final class FirebaseAuthRepository: AuthRepositoryProtocol, @unchecked Sendable {
     
     private let auth: Auth
     private let firestore: Firestore

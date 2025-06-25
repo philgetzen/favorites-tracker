@@ -5,7 +5,7 @@ import Combine
 // MARK: - Optimized Firestore Repository Implementations
 
 /// High-performance implementation of CollectionRepositoryProtocol
-class OptimizedCollectionRepository: CollectionRepositoryProtocol {
+class OptimizedCollectionRepository: CollectionRepositoryProtocol, @unchecked Sendable {
     private let performanceManager: FirestorePerformanceManager
     private let performanceMonitor: FirestorePerformanceMonitor
     
@@ -168,7 +168,7 @@ class OptimizedCollectionRepository: CollectionRepositoryProtocol {
 }
 
 /// High-performance implementation of ItemRepositoryProtocol
-class OptimizedItemRepository: ItemRepositoryProtocol {
+class OptimizedItemRepository: ItemRepositoryProtocol, @unchecked Sendable {
     private let performanceManager: FirestorePerformanceManager
     private let performanceMonitor: FirestorePerformanceMonitor
     
@@ -402,7 +402,7 @@ class OptimizedItemRepository: ItemRepositoryProtocol {
 }
 
 /// High-performance implementation of TemplateRepositoryProtocol
-class OptimizedTemplateRepository: TemplateRepositoryProtocol {
+class OptimizedTemplateRepository: TemplateRepositoryProtocol, @unchecked Sendable {
     private let performanceManager: FirestorePerformanceManager
     private let performanceMonitor: FirestorePerformanceMonitor
     
@@ -643,7 +643,7 @@ extension CollectionDTO {
     }
     
     func toDomain() -> Collection {
-        var collection = Collection(userId: userId, name: name, templateId: templateId)
+        let collection = Collection(userId: userId, name: name, templateId: templateId)
         // Copy over all the properties that can't be set in the initializer
         // Note: This would need proper Collection initializer or property setters
         return collection
@@ -686,7 +686,7 @@ extension ItemDTO {
     }
     
     func toDomain() -> Item {
-        var item = Item(userId: userId, collectionId: collectionId, name: name)
+        let item = Item(userId: userId, collectionId: collectionId, name: name)
         // Copy over additional properties
         // Note: This would need proper Item initializer or property setters
         return item
@@ -730,7 +730,7 @@ extension TemplateDTO {
     }
     
     func toDomain() -> Template {
-        var template = Template(creatorId: creatorId, name: name, description: description, category: category)
+        let template = Template(creatorId: creatorId, name: name, description: description, category: category)
         // Copy over additional properties
         // Note: This would need proper Template initializer or property setters
         return template

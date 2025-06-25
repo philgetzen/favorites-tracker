@@ -4,7 +4,7 @@ import FirebaseFirestore
 // MARK: - Migration Utilities and Helpers
 
 /// Utility class providing common migration operations and safety checks
-class MigrationUtilities {
+class MigrationUtilities: @unchecked Sendable {
     
     // MARK: - Data Validation
     

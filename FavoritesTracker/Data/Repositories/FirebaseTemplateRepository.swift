@@ -4,7 +4,7 @@ import Combine
 
 /// Firebase implementation of TemplateRepositoryProtocol
 /// Handles Firestore operations for templates with marketplace functionality
-final class FirebaseTemplateRepository: TemplateRepositoryProtocol {
+final class FirebaseTemplateRepository: TemplateRepositoryProtocol, @unchecked Sendable {
     
     private let firestore: Firestore
     private let collectionName = FirestoreCollection.templates

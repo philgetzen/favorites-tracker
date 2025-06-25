@@ -4,7 +4,7 @@ import Combine
 
 /// Firebase implementation of ItemRepositoryProtocol
 /// Handles Firestore operations for items with real-time synchronization
-final class FirebaseItemRepository: ItemRepositoryProtocol {
+final class FirebaseItemRepository: ItemRepositoryProtocol, @unchecked Sendable {
     
     private let firestore: Firestore
     private let collectionName = FirestoreCollection.Groups.items

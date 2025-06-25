@@ -6,13 +6,13 @@ import Combine
 
 /// Coordinates migration execution with app lifecycle and user experience
 @MainActor
-class MigrationCoordinator: ObservableObject {
+class MigrationCoordinator: ObservableObject, @unchecked Sendable {
     @Published var migrationState: MigrationState = .idle
     @Published var progress: MigrationProgress = .init()
     @Published var lastError: MigrationError?
     
-    nonisolated(unsafe) private let migrationManager: DataMigrationManager
-    nonisolated(unsafe) private let userNotificationService: UserNotificationService
+    private let migrationManager: DataMigrationManager
+    private let userNotificationService: UserNotificationService
     private var migrationTask: Task<Void, Never>?
     
     init(migrationManager: DataMigrationManager = DataMigrationManager()) {
@@ -205,7 +205,7 @@ enum MigrationPhase: String, CaseIterable {
 // MARK: - User Notification Service
 
 /// Service for notifying users about migration progress
-class UserNotificationService {
+class UserNotificationService: @unchecked Sendable {
     
     func notifyMigrationProgress(_ progress: MigrationProgress) async {
         // Implementation would depend on UI framework
@@ -305,7 +305,7 @@ struct SystemResources {
 // MARK: - Migration Recovery
 
 /// Handles migration failure recovery
-class MigrationRecoveryManager {
+class MigrationRecoveryManager: @unchecked Sendable {
     private let firestore: Firestore
     
     init(firestore: Firestore = Firestore.firestore()) {
@@ -384,7 +384,7 @@ struct FailureAnalysis {
 // MARK: - Migration Monitoring
 
 /// Monitors migration performance and health
-class MigrationMonitor {
+class MigrationMonitor: @unchecked Sendable {
     private var metrics: [MigrationMetric] = []
     
     func recordMetric(_ metric: MigrationMetric) {
