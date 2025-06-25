@@ -4,7 +4,7 @@ import Combine
 
 /// Firebase implementation of CollectionRepositoryProtocol
 /// Handles Firestore operations for collections with real-time synchronization
-final class FirebaseCollectionRepository: CollectionRepositoryProtocol {
+final class FirebaseCollectionRepository: CollectionRepositoryProtocol, @unchecked Sendable {
     
     private let firestore: Firestore
     

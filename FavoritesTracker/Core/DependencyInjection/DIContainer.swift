@@ -5,7 +5,7 @@ import Foundation
 final class DIContainer: @unchecked Sendable {
     
     /// Shared instance for app-wide dependency injection
-    nonisolated(unsafe) static let shared = DIContainer()
+    static let shared = DIContainer()
     
     /// Internal service registry
     private var services: [String: Any] = [:]
