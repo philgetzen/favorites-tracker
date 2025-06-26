@@ -17,6 +17,7 @@ protocol AuthRepositoryProtocol: Sendable {
 protocol ItemRepositoryProtocol: Sendable {
     func getItems(for userId: String) async throws -> [Item]
     func getItem(id: String) async throws -> Item?
+    func getItemCount(for collectionId: String) async throws -> Int
     func createItem(_ item: Item) async throws -> Item
     func updateItem(_ item: Item) async throws -> Item
     func deleteItem(id: String) async throws

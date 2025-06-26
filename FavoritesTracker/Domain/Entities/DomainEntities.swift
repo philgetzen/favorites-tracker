@@ -334,7 +334,7 @@ struct Location: Codable, Sendable {
 }
 
 /// Custom field value types
-enum CustomFieldValue: Codable, Sendable {
+enum CustomFieldValue: Codable, Sendable, Equatable {
     case text(String)
     case number(Double)
     case date(Date)

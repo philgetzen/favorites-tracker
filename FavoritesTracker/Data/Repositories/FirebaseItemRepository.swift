@@ -141,6 +141,23 @@ final class FirebaseItemRepository: ItemRepositoryProtocol, @unchecked Sendable 
         return FirestoreBatchMapper.toDomain(itemDTOs, using: ItemMapper.self)
     }
     
+    func getItemCount(for collectionId: String) async throws -> Int {
+        // Get the collection document and read its itemCount field
+        // We need to find the collection across all users since we only have collectionId
+        let collectionQuery = firestore.collectionGroup("collections")
+            .whereField("id", isEqualTo: collectionId)
+            .limit(to: 1)
+        
+        let snapshot = try await collectionQuery.getDocuments()
+        guard let document = snapshot.documents.first else {
+            throw RepositoryError.collectionNotFound
+        }
+        
+        // Read the itemCount field from the collection document
+        let data = document.data()
+        return data["itemCount"] as? Int ?? 0
+    }
+    
     // MARK: - Additional Methods
     
     /// Get items for a specific collection
