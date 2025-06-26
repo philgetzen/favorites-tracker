@@ -38,10 +38,6 @@ class ItemDetailViewModel: BaseViewModel {
         item?.rating != nil && item?.rating ?? 0 > 0
     }
     
-    var ratingStars: [Bool] {
-        let rating = item?.rating ?? 0
-        return (1...5).map { $0 <= Int(rating.rounded()) }
-    }
     
     var formattedCreatedDate: String {
         guard let item = item else { return "" }

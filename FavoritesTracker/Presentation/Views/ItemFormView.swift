@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 /// SwiftUI view for creating and editing items
 struct ItemFormView: View {
@@ -73,6 +74,9 @@ struct ItemFormView: View {
             // Tags Section
             tagsSection
             
+            // Data Tracking Section
+            dataTrackingSection
+            
             // Options Section
             optionsSection
         }
@@ -97,16 +101,17 @@ struct ItemFormView: View {
                         .autocorrectionDisabled()
                 }
                 
-                // Description field
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Description")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(.secondary)
+                // Rich text description field
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Notes & Description")
+                        .font(.headline)
+                        .foregroundColor(.primary)
                     
-                    TextField("Add a description...", text: $viewModel.description, axis: .vertical)
-                        .textFieldStyle(.roundedBorder)
-                        .lineLimit(3...6)
+                    RichTextEditorView(
+                        text: $viewModel.description,
+                        placeholder: "Add notes, description, or any details about this item...",
+                        minHeight: 140
+                    )
                 }
             }
             .padding(.horizontal, 4)
@@ -119,7 +124,7 @@ struct ItemFormView: View {
                 .font(.headline)
                 .foregroundColor(.primary)
             
-            VStack(spacing: 12) {
+            VStack(spacing: 16) {
                 HStack {
                     Text("Rating: \(viewModel.rating, specifier: "%.1f")")
                         .font(.subheadline)
@@ -127,15 +132,28 @@ struct ItemFormView: View {
                     
                     Spacer()
                     
-                    // Star display
-                    HStack(spacing: 2) {
-                        ForEach(1...5, id: \.self) { star in
-                            Image(systemName: star <= Int(viewModel.rating.rounded()) ? "star.fill" : "star")
-                                .foregroundColor(.yellow)
-                                .font(.caption)
-                        }
-                    }
+                    // Enhanced star display with half-star support
+                    StarRatingView(rating: viewModel.rating, maxRating: 5, starSize: 16)
                 }
+                
+                // Interactive star rating (alternative to slider)
+                VStack(spacing: 8) {
+                    Text("Tap to rate:")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    InteractiveStarRatingView(
+                        rating: $viewModel.rating,
+                        maxRating: 5,
+                        starSize: 24,
+                        allowHalfStars: true
+                    )
+                }
+                
+                // Keep slider as alternative input method
+                Text("Or use slider:")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
                 
                 Slider(value: $viewModel.rating, in: 0...5, step: 0.5)
                     .accentColor(.blue)
@@ -153,7 +171,7 @@ struct ItemFormView: View {
                 
                 Spacer()
                 
-                Button(action: viewModel.selectImages) {
+                PhotosPicker(selection: $viewModel.selectedPhotoItems, maxSelectionCount: 5, matching: .images) {
                     HStack(spacing: 4) {
                         Image(systemName: "plus")
                         Text("Add Photo")
@@ -164,7 +182,7 @@ struct ItemFormView: View {
                 .buttonStyle(.bordered)
             }
             
-            if viewModel.selectedImageURLs.isEmpty {
+            if viewModel.selectedImageURLs.isEmpty && !viewModel.isUploadingImages {
                 VStack(spacing: 8) {
                     Image(systemName: "photo.badge.plus")
                         .font(.system(size: 40))
@@ -182,9 +200,23 @@ struct ItemFormView: View {
                 .frame(height: 100)
                 .background(Color(.systemGray6))
                 .cornerRadius(8)
+            } else if viewModel.isUploadingImages && viewModel.selectedImageURLs.isEmpty {
+                VStack(spacing: 8) {
+                    ProgressView()
+                        .scaleEffect(1.2)
+                    
+                    Text("Uploading photos...")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 100)
+                .background(Color(.systemGray6))
+                .cornerRadius(8)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
+                        // Show uploaded images
                         ForEach(Array(viewModel.selectedImageURLs.enumerated()), id: \.offset) { index, url in
                             ZStack(alignment: .topTrailing) {
                                 AsyncImage(url: url) { image in
@@ -211,6 +243,23 @@ struct ItemFormView: View {
                                 .offset(x: 8, y: -8)
                             }
                         }
+                        
+                        // Show upload progress indicator if uploading
+                        if viewModel.isUploadingImages {
+                            Rectangle()
+                                .fill(Color(.systemGray5))
+                                .frame(width: 80, height: 80)
+                                .cornerRadius(8)
+                                .overlay(
+                                    VStack(spacing: 4) {
+                                        ProgressView()
+                                            .scaleEffect(0.8)
+                                        Text("Uploading...")
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                    }
+                                )
+                        }
                     }
                     .padding(.horizontal, 4)
                 }
@@ -219,52 +268,22 @@ struct ItemFormView: View {
     }
     
     private var tagsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Tags")
-                .font(.headline)
-                .foregroundColor(.primary)
-            
-            VStack(spacing: 12) {
-                // Add tag input
-                HStack {
-                    TextField("Add a tag...", text: $viewModel.newTag)
-                        .textFieldStyle(.roundedBorder)
-                        .onSubmit {
-                            viewModel.addTag()
-                        }
-                    
-                    Button("Add", action: viewModel.addTag)
-                        .buttonStyle(.borderedProminent)
-                        .disabled(viewModel.newTag.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-                
-                // Display current tags
-                if !viewModel.tags.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack {
-                            ForEach(viewModel.tags, id: \.self) { tag in
-                                HStack(spacing: 4) {
-                                    Text(tag)
-                                        .font(.caption)
-                                        .foregroundColor(.blue)
-                                    
-                                    Button(action: { viewModel.removeTag(tag) }) {
-                                        Image(systemName: "xmark")
-                                            .font(.caption2)
-                                            .foregroundColor(.blue)
-                                    }
-                                }
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.blue.opacity(0.1))
-                                .cornerRadius(12)
-                            }
-                        }
-                        .padding(.horizontal, 4)
-                    }
-                }
-            }
-        }
+        TagManagerView(
+            selectedTags: $viewModel.tags,
+            availableTags: viewModel.availableTags,
+            maxTags: 10,
+            allowCustomTags: true
+        )
+    }
+    
+    private var dataTrackingSection: some View {
+        DataTrackingView(
+            customFields: $viewModel.customFields,
+            title: "Data Tracking",
+            showPriceTracking: true,
+            showDateTracking: true,
+            showAvailabilityTracking: true
+        )
     }
     
     private var optionsSection: some View {

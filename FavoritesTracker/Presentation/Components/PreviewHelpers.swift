@@ -9,22 +9,22 @@ struct PreviewHelpers {
     
     /// Sample users for previews
     static let sampleUsers: [User] = [
-        User(id: "1", email: "john@example.com", displayName: "John Doe", isEmailVerified: true),
+        User(id: "preview-user-id", email: "john@example.com", displayName: "John Doe", isEmailVerified: true),
         User(id: "2", email: "jane@example.com", displayName: "Jane Smith", isEmailVerified: false)
     ]
     
     /// Sample collections for previews
     static let sampleCollections: [Collection] = [
-        Collection(userId: "1", name: "Favorite Books", templateId: "books-template"),
-        Collection(userId: "1", name: "Coffee Shops", templateId: "places-template"),
-        Collection(userId: "1", name: "Board Games", templateId: nil)
+        Collection(userId: "preview-user-id", name: "Favorite Books", templateId: "books-template"),
+        Collection(userId: "preview-user-id", name: "Coffee Shops", templateId: "places-template"),
+        Collection(userId: "preview-user-id", name: "Board Games", templateId: nil)
     ]
     
     /// Sample items for previews
     static let sampleItems: [Item] = [
-        Item(userId: "1", collectionId: "1", name: "The Great Gatsby"),
-        Item(userId: "1", collectionId: "1", name: "To Kill a Mockingbird"),
-        Item(userId: "1", collectionId: "2", name: "Blue Bottle Coffee")
+        Item(userId: "preview-user-id", collectionId: "1", name: "The Great Gatsby"),
+        Item(userId: "preview-user-id", collectionId: "1", name: "To Kill a Mockingbird"),
+        Item(userId: "preview-user-id", collectionId: "2", name: "Blue Bottle Coffee")
     ]
     
     /// Sample templates for previews

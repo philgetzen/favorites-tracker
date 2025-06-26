@@ -1,19 +1,37 @@
 import SwiftUI
 
-/// Main home screen showing user's collections and recent items
-struct HomeView: View {
-    @StateObject private var viewModel: HomeViewModel
+/// Refactored main home screen using separated ViewModels for better maintainability
+struct HomeViewRefactored: View {
+    
+    // MARK: - ViewModels
+    
+    @StateObject private var dataViewModel: HomeDataViewModel
+    @StateObject private var searchViewModel: HomeSearchViewModel
+    @StateObject private var filterViewModel: HomeFilterViewModel
+    @StateObject private var formViewModel: HomeFormViewModel
+    
+    // MARK: - State
+    
+    @State private var selectedTab = 0
+    
+    // MARK: - Initialization
     
     init(
         itemRepository: ItemRepositoryProtocol = PreviewRepositoryProvider.shared.itemRepository,
         collectionRepository: CollectionRepositoryProtocol = PreviewRepositoryProvider.shared.collectionRepository,
         storageRepository: StorageRepositoryProtocol = PreviewRepositoryProvider.shared.storageRepository
     ) {
-        self._viewModel = StateObject(wrappedValue: HomeViewModel(
+        let homeService = HomeService(
             itemRepository: itemRepository,
-            collectionRepository: collectionRepository,
-            storageRepository: storageRepository
-        ))
+            collectionRepository: collectionRepository
+        )
+        
+        let dataVM = HomeDataViewModel(homeService: homeService)
+        
+        self._dataViewModel = StateObject(wrappedValue: dataVM)
+        self._searchViewModel = StateObject(wrappedValue: HomeSearchViewModel(homeService: homeService))
+        self._filterViewModel = StateObject(wrappedValue: HomeFilterViewModel(homeService: homeService))
+        self._formViewModel = StateObject(wrappedValue: HomeFormViewModel(dataViewModel: dataVM))
     }
     
     var body: some View {
@@ -23,7 +41,7 @@ struct HomeView: View {
                 headerView
                 
                 // Content
-                TabView(selection: $viewModel.selectedTab) {
+                TabView(selection: $selectedTab) {
                     collectionsView
                         .tabItem {
                             Image(systemName: "folder")
@@ -51,42 +69,43 @@ struct HomeView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
-                        viewModel.showItemForm()
+                        formViewModel.showItemForm()
                     } label: {
                         Image(systemName: "plus")
                     }
                 }
             }
             .task {
-                await viewModel.loadData()
+                await dataViewModel.loadData()
             }
-            .sheet(isPresented: $viewModel.showingItemForm) {
-                if let collectionId = viewModel.defaultCollectionId {
+            .sheet(isPresented: $formViewModel.showingItemForm) {
+                if let collectionId = dataViewModel.defaultCollectionId {
                     ItemFormView(
                         userId: "preview-user-id",
                         collectionId: collectionId,
-                        itemRepository: viewModel.itemRepository,
-                        collectionRepository: viewModel.collectionRepository,
-                        storageRepository: viewModel.storageRepository
+                        itemRepository: DIContainer.shared.resolve(ItemRepositoryProtocol.self),
+                        collectionRepository: DIContainer.shared.resolve(CollectionRepositoryProtocol.self),
+                        storageRepository: DIContainer.shared.resolve(StorageRepositoryProtocol.self)
                     )
                     .onDisappear {
-                        viewModel.refreshAfterItemCreation()
+                        formViewModel.handleItemFormDismissal()
                     }
                 } else {
                     Text("No collections available. Create a collection first.")
                         .padding()
                 }
             }
-            .sheet(isPresented: $viewModel.showingAdvancedSearch) {
+            .sheet(isPresented: $formViewModel.showingAdvancedSearch) {
                 AdvancedSearchView(
-                    searchQuery: $viewModel.searchText,
-                    searchFilters: $viewModel.searchFilters,
-                    isPresented: $viewModel.showingAdvancedSearch,
+                    searchQuery: $searchViewModel.searchText,
+                    searchFilters: $filterViewModel.searchFilters,
+                    isPresented: $formViewModel.showingAdvancedSearch,
                     onSearch: { query, filters in
-                        viewModel.performAdvancedSearch(query: query, filters: filters)
+                        searchViewModel.performAdvancedSearch(query: query, filters: filters)
                     },
                     onClear: {
-                        viewModel.clearSearch()
+                        searchViewModel.clearSearch()
+                        filterViewModel.resetFilters()
                     }
                 )
             }
@@ -101,7 +120,7 @@ struct HomeView: View {
                 VStack(alignment: .leading) {
                     Text("Welcome back!")
                         .font(.headline)
-                    Text("You have \(viewModel.collections.count) collections")
+                    Text("You have \(dataViewModel.collections.count) collections")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -130,21 +149,24 @@ struct HomeView: View {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.secondary)
                     
-                    TextField("Search items...", text: $viewModel.searchText)
+                    TextField("Search items...", text: $searchViewModel.searchText)
                         .textFieldStyle(.plain)
                         .onSubmit {
-                            viewModel.performSearch()
+                            performFilteredSearch()
                         }
-                        .onChange(of: viewModel.searchText) { oldValue, newValue in
+                        .onChange(of: searchViewModel.searchText) { oldValue, newValue in
                             if newValue.isEmpty {
-                                viewModel.clearSearch()
+                                searchViewModel.clearSearch()
                             } else if newValue.count >= 2 {
-                                viewModel.performSearch()
+                                performFilteredSearch()
                             }
                         }
                     
-                    if !viewModel.searchText.isEmpty {
-                        Button(action: viewModel.clearSearch) {
+                    if !searchViewModel.searchText.isEmpty {
+                        Button(action: {
+                            searchViewModel.clearSearch()
+                            filterViewModel.resetFilters()
+                        }) {
                             Image(systemName: "xmark.circle.fill")
                                 .foregroundColor(.secondary)
                         }
@@ -156,7 +178,7 @@ struct HomeView: View {
                 .cornerRadius(8)
                 
                 // Advanced search button
-                Button(action: { viewModel.showingAdvancedSearch = true }) {
+                Button(action: { formViewModel.showAdvancedSearch() }) {
                     Image(systemName: "slider.horizontal.3")
                         .foregroundColor(.blue)
                         .font(.system(size: 18))
@@ -168,19 +190,19 @@ struct HomeView: View {
                 // Filter button
                 Menu {
                     Section("Filters") {
-                        Toggle("Favorites Only", isOn: $viewModel.showFavoritesOnly)
-                            .onChange(of: viewModel.showFavoritesOnly) { _, _ in
-                                if viewModel.isSearching {
-                                    viewModel.performSearch()
+                        Toggle("Favorites Only", isOn: $filterViewModel.showFavoritesOnly)
+                            .onChange(of: filterViewModel.showFavoritesOnly) { _, _ in
+                                if searchViewModel.hasActiveSearch {
+                                    performFilteredSearch()
                                 }
                             }
                         
                         VStack {
-                            Text("Minimum Rating: \(viewModel.minimumRating, specifier: "%.1f")")
-                            Slider(value: $viewModel.minimumRating, in: 0...5, step: 0.5)
-                                .onChange(of: viewModel.minimumRating) { _, _ in
-                                    if viewModel.isSearching {
-                                        viewModel.performSearch()
+                            Text("Minimum Rating: \(filterViewModel.minimumRating, specifier: "%.1f")")
+                            Slider(value: $filterViewModel.minimumRating, in: 0...5, step: 0.5)
+                                .onChange(of: filterViewModel.minimumRating) { _, _ in
+                                    if searchViewModel.hasActiveSearch {
+                                        performFilteredSearch()
                                     }
                                 }
                         }
@@ -188,16 +210,15 @@ struct HomeView: View {
                     
                     Section {
                         Button("Clear Filters") {
-                            viewModel.showFavoritesOnly = false
-                            viewModel.minimumRating = 0.0
-                            if viewModel.isSearching {
-                                viewModel.performSearch()
+                            filterViewModel.resetFilters()
+                            if searchViewModel.hasActiveSearch {
+                                performFilteredSearch()
                             }
                         }
                     }
                 } label: {
-                    Image(systemName: viewModel.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
-                        .foregroundColor(viewModel.hasActiveFilters ? .blue : .secondary)
+                    Image(systemName: filterViewModel.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                        .foregroundColor(filterViewModel.hasActiveFilters ? .blue : .secondary)
                 }
             }
             .padding(.horizontal)
@@ -212,7 +233,7 @@ struct HomeView: View {
     
     private var collectionsView: some View {
         ScrollView {
-            if viewModel.collections.isEmpty {
+            if dataViewModel.collections.isEmpty {
                 EmptyStateView(
                     title: "No Collections Yet",
                     message: "Start organizing your favorites by creating your first collection.",
@@ -226,7 +247,7 @@ struct HomeView: View {
                     GridItem(.flexible()),
                     GridItem(.flexible())
                 ], spacing: 16) {
-                    ForEach(viewModel.collections, id: \.id) { collection in
+                    ForEach(dataViewModel.collections, id: \.id) { collection in
                         CollectionCardView(collection: collection)
                     }
                 }
@@ -239,22 +260,23 @@ struct HomeView: View {
     
     private var recentItemsView: some View {
         return ScrollView {
-            let itemsToShow = viewModel.isSearching ? viewModel.searchResults : viewModel.items
-            let emptyTitle = viewModel.isSearching ? "No Search Results" : "No Recent Items"
-            let emptyMessage = viewModel.isSearching ? "Try different search terms or check your spelling." : "Items you add or view will appear here."
-            let emptyIcon = viewModel.isSearching ? "magnifyingglass" : "clock"
+            let itemsToShow = searchViewModel.hasActiveSearch ? searchViewModel.searchResults : dataViewModel.items
+            let emptyTitle = searchViewModel.hasActiveSearch ? "No Search Results" : "No Recent Items"
+            let emptyMessage = searchViewModel.hasActiveSearch ? "Try different search terms or check your spelling." : "Items you add or view will appear here."
+            let emptyIcon = searchViewModel.hasActiveSearch ? "magnifyingglass" : "clock"
             
             if itemsToShow.isEmpty {
                 EmptyStateView(
                     title: emptyTitle,
                     message: emptyMessage,
                     systemImage: emptyIcon,
-                    actionTitle: viewModel.isSearching ? "Clear Search" : "Browse Collections",
+                    actionTitle: searchViewModel.hasActiveSearch ? "Clear Search" : "Browse Collections",
                     action: { 
-                        if viewModel.isSearching {
-                            viewModel.clearSearch()
+                        if searchViewModel.hasActiveSearch {
+                            searchViewModel.clearSearch()
+                            filterViewModel.resetFilters()
                         } else {
-                            viewModel.selectedTab = 0 
+                            selectedTab = 0 
                         }
                     }
                 )
@@ -262,16 +284,17 @@ struct HomeView: View {
             } else {
                 VStack(alignment: .leading, spacing: 16) {
                     // Search results header
-                    if viewModel.isSearching {
+                    if searchViewModel.hasActiveSearch {
                         HStack {
-                            Text("Search Results (\(viewModel.searchResults.count))")
+                            Text("Search Results (\(searchViewModel.searchResultsCount))")
                                 .font(.headline)
                                 .foregroundColor(.primary)
                             
                             Spacer()
                             
                             Button("Clear") {
-                                viewModel.clearSearch()
+                                searchViewModel.clearSearch()
+                                filterViewModel.resetFilters()
                             }
                             .font(.subheadline)
                             .foregroundColor(.blue)
@@ -285,15 +308,15 @@ struct HomeView: View {
                     ], spacing: 16) {
                         ForEach(itemsToShow, id: \.id) { item in
                             ItemCardView(
-                            item: item,
-                            itemRepository: viewModel.itemRepository,
-                            collectionRepository: viewModel.collectionRepository,
-                            storageRepository: viewModel.storageRepository
-                        )
+                                item: item,
+                                itemRepository: DIContainer.shared.resolve(ItemRepositoryProtocol.self),
+                                collectionRepository: DIContainer.shared.resolve(CollectionRepositoryProtocol.self),
+                                storageRepository: DIContainer.shared.resolve(StorageRepositoryProtocol.self)
+                            )
+                        }
                     }
+                    .padding()
                 }
-                .padding()
-            }
             }
         }
     }
@@ -319,83 +342,42 @@ struct HomeView: View {
             }
         }
     }
-}
-
-/// Simple template card view for previews
-struct TemplateCardView: View {
-    let template: Template
     
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.green.gradient)
-                .frame(height: 80)
-                .overlay(
-                    Image(systemName: "doc.text")
-                        .font(.title)
-                        .foregroundColor(.white)
-                )
+    // MARK: - Helper Methods
+    
+    private func performFilteredSearch() {
+        Task {
+            // First perform the basic search
+            await searchViewModel.performSearch()
             
-            Text(template.name)
-                .font(.headline)
-                .lineLimit(1)
-            
-            Text(template.description)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .lineLimit(2)
-            
-            Text(template.category)
-                .font(.caption2)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 2)
-                .background(Color.green.opacity(0.1))
-                .foregroundColor(.green)
-                .clipShape(Capsule())
+            // Then apply filters to the search results
+            let filteredResults = filterViewModel.applyFilters(to: searchViewModel.searchResults)
+            await MainActor.run {
+                searchViewModel.updateSearchResults(with: filteredResults)
+            }
         }
-        .padding(12)
-        .background(Color(.systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
     }
 }
 
 // MARK: - Previews
 
-#Preview("Home with Data") {
-    HomeView()
+#Preview("Refactored Home with Data") {
+    HomeViewRefactored()
 }
 
-#Preview("Empty State") {
-    HomeView()
+#Preview("Refactored Empty State") {
+    HomeViewRefactored()
         .onAppear {
             // This would normally clear data, but PreviewSampleViewModel 
             // already has sample data, so this demonstrates the loaded state
         }
 }
 
-#Preview("Dark Mode") {
-    HomeView()
+#Preview("Refactored Dark Mode") {
+    HomeViewRefactored()
         .preferredColorScheme(.dark)
 }
 
-#Preview("iPad", traits: .landscapeLeft) {
-    HomeView()
-}
-
-#Preview("Collections Tab") {
-    HomeView()
-        .onAppear {
-            // Default shows collections tab
-        }
-}
-
-#Preview("Recent Items Tab") {
-    @Previewable @State var selectedTab = 1
-    HomeView()
-}
-
-#Preview("Templates Tab") {
-    @Previewable @State var selectedTab = 2
-    HomeView()
+#Preview("Refactored iPad", traits: .landscapeLeft) {
+    HomeViewRefactored()
 }

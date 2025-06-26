@@ -17,7 +17,7 @@ final class RepositoryProvider: @unchecked Sendable {
     private let auth: Auth
     private let storage: Storage
     
-    // MARK: - Repository Instances
+    // MARK: - Repository Instances (Clean Firebase Implementation)
     
     private lazy var _itemRepository: ItemRepositoryProtocol = FirebaseItemRepository(firestore: firestore)
     private lazy var _collectionRepository: CollectionRepositoryProtocol = FirebaseCollectionRepository(firestore: firestore)
