@@ -16,7 +16,7 @@ struct FavoritesTrackerApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            HomeView()
         }
     }
 }

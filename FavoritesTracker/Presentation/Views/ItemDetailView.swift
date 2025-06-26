@@ -160,10 +160,7 @@ struct ItemDetailView: View {
                         .foregroundColor(.primary)
                     
                     if let description = item.description, !description.isEmpty {
-                        Text(description)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .lineLimit(2)
+                        RichTextDisplayView(text: description, style: .detail, lineLimit: 2)
                     }
                 }
                 
@@ -185,14 +182,11 @@ struct ItemDetailView: View {
     
     private func descriptionSection(item: Item) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Description")
+            Text("Notes & Description")
                 .font(.headline)
                 .foregroundColor(.primary)
             
-            Text(item.description ?? "")
-                .font(.body)
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            RichTextDisplayView(text: item.description ?? "", style: .body)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -204,13 +198,7 @@ struct ItemDetailView: View {
                 .foregroundColor(.primary)
             
             HStack(spacing: 8) {
-                HStack(spacing: 2) {
-                    ForEach(0..<5, id: \.self) { index in
-                        Image(systemName: viewModel.ratingStars[index] ? "star.fill" : "star")
-                            .foregroundColor(.yellow)
-                            .font(.subheadline)
-                    }
-                }
+                StarRatingView(rating: item.rating ?? 0, maxRating: 5, starSize: 18)
                 
                 Text(String(format: "%.1f", item.rating ?? 0))
                     .font(.subheadline)

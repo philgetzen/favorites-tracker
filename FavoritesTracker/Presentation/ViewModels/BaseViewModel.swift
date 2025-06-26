@@ -14,7 +14,7 @@ class BaseViewModel: ObservableObject {
     
     // MARK: - Dependencies
     
-    private nonisolated(unsafe) var cancellables = Set<AnyCancellable>()
+    internal nonisolated(unsafe) var cancellables = Set<AnyCancellable>()
     
     // MARK: - Initialization
     
