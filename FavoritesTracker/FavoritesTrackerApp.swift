@@ -11,6 +11,9 @@ struct FavoritesTrackerApp: App {
         // Configure environment-specific settings
         AppConfiguration.shared.configure()
         
+        // Register all dependencies
+        ServiceAssembly.registerDependencies()
+        
         print("✅ FavoritesTracker app starting with \(AppConfiguration.shared.currentEnvironment) configuration")
     }
     

@@ -160,6 +160,10 @@ final class PreviewItemRepository: ItemRepositoryProtocol, @unchecked Sendable {
     func searchItems(query: String, userId: String) async throws -> [Item] {
         return items.filter { $0.userId == userId && $0.name.contains(query) }
     }
+    
+    func getItemCount(for collectionId: String) async throws -> Int {
+        return items.filter { $0.collectionId == collectionId }.count
+    }
 }
 
 final class PreviewCollectionRepository: CollectionRepositoryProtocol, @unchecked Sendable {
