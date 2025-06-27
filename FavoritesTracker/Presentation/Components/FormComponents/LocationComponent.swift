@@ -238,9 +238,13 @@ struct LocationComponent: FormComponentProtocol {
     }
     
     private var mapView: some View {
-        Map(coordinateRegion: .constant(mapRegion), annotationItems: mapAnnotations) { annotation in
-            MapPin(coordinate: annotation.coordinate, tint: .red)
+        Map {
+            ForEach(mapAnnotations, id: \.coordinate.latitude) { annotation in
+                Marker("", coordinate: annotation.coordinate)
+                    .tint(.red)
+            }
         }
+        .mapStyle(.standard)
         .frame(height: 200)
         .cornerRadius(12)
         .overlay(
@@ -510,9 +514,13 @@ private struct LocationMapView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Map(coordinateRegion: $region, annotationItems: annotations) { annotation in
-                    MapPin(coordinate: annotation.coordinate, tint: .red)
+                Map(position: .constant(.region(MKCoordinateRegion(center: region.center, span: region.span)))) {
+                    ForEach(annotations, id: \.coordinate.latitude) { annotation in
+                        Marker("", coordinate: annotation.coordinate)
+                            .tint(.red)
+                    }
                 }
+                .mapStyle(.standard)
                 .onTapGesture { location in
                     // Convert tap location to coordinate
                     // This is a simplified implementation

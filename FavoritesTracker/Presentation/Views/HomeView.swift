@@ -3,6 +3,8 @@ import SwiftUI
 /// Main home screen showing user's collections and recent items
 struct HomeView: View {
     @StateObject private var viewModel: HomeViewModel
+    @StateObject private var authManager = AuthenticationManager.shared
+    @State private var showingProfileModal = false
     
     init(
         itemRepository: ItemRepositoryProtocol = PreviewRepositoryProvider.shared.itemRepository,
@@ -90,7 +92,33 @@ struct HomeView: View {
                     }
                 )
             }
+            .sheet(isPresented: $showingProfileModal) {
+                ProfileModal(
+                    isPresented: $showingProfileModal,
+                    currentUser: authManager.currentUser,
+                    onSignOut: {
+                        await signOut()
+                    },
+                    onUpdateDisplayName: { newDisplayName in
+                        try await updateDisplayName(newDisplayName)
+                    }
+                )
+            }
         }
+    }
+    
+    // MARK: - Profile Actions
+    
+    private func signOut() async {
+        do {
+            try await authManager.signOut()
+        } catch {
+            print("Sign out error: \(error)")
+        }
+    }
+    
+    private func updateDisplayName(_ newDisplayName: String) async throws {
+        try await authManager.updateDisplayName(newDisplayName)
     }
     
     // MARK: - Header View
@@ -109,16 +137,13 @@ struct HomeView: View {
                 Spacer()
                 
                 Button {
-                    // Profile action
+                    showingProfileModal = true
                 } label: {
-                    Circle()
-                        .fill(Color.blue.gradient)
-                        .frame(width: 40, height: 40)
-                        .overlay(
-                            Text("JD")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                        )
+                    UserInitialsView(
+                        displayName: authManager.currentUser?.displayName,
+                        size: 40,
+                        backgroundColor: .blue
+                    )
                 }
             }
             .padding(.horizontal)

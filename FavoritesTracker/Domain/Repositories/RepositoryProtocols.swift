@@ -11,6 +11,17 @@ protocol AuthRepositoryProtocol: Sendable {
     func signOut() async throws
     func getCurrentUser() -> User?
     func deleteAccount() async throws
+    
+    // Additional authentication methods
+    func sendPasswordReset(email: String) async throws
+    func updateEmail(_ newEmail: String) async throws -> User
+    func updatePassword(_ newPassword: String) async throws
+    func sendEmailVerification() async throws
+    func reloadUser() async throws -> User
+    func updateDisplayName(_ displayName: String) async throws -> User
+    func updatePhotoURL(_ photoURL: URL) async throws -> User
+    func reauthenticate(email: String, password: String) async throws
+    func authStateChanges() -> AnyPublisher<User?, Never>
 }
 
 /// Protocol for item data operations

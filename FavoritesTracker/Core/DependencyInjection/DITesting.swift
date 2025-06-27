@@ -16,6 +16,7 @@ struct DITesting {
     }
     
     /// Reset container to clean state for testing
+    @MainActor
     static func reset() {
         DIContainer.shared.clear()
         ServiceAssembly.registerDependencies()

@@ -161,7 +161,7 @@ final class DataConsistencyService: ObservableObject {
                 updatedAt: Date()
             )
             
-            try await collectionRepository.updateCollection(updatedCollection)
+            _ = try await collectionRepository.updateCollection(updatedCollection)
         }
     }
     
@@ -236,7 +236,7 @@ final class DataConsistencyService: ObservableObject {
                 updatedAt: Date()
             )
             
-            try await itemRepository.updateItem(updatedItem)
+            _ = try await itemRepository.updateItem(updatedItem)
         }
     }
     

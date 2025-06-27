@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 #if DEBUG
 /// Preview helpers for SwiftUI development
@@ -263,6 +264,42 @@ final class PreviewAuthRepository: AuthRepositoryProtocol, @unchecked Sendable {
     
     func deleteAccount() async throws {
         // No-op for previews
+    }
+    
+    func sendPasswordReset(email: String) async throws {
+        // No-op for previews
+    }
+    
+    func updateEmail(_ newEmail: String) async throws -> User {
+        return User(id: "preview-user", email: newEmail, displayName: "Preview User")
+    }
+    
+    func updatePassword(_ newPassword: String) async throws {
+        // No-op for previews
+    }
+    
+    func sendEmailVerification() async throws {
+        // No-op for previews
+    }
+    
+    func reloadUser() async throws -> User {
+        return User(id: "preview-user", email: "preview@example.com", displayName: "Preview User")
+    }
+    
+    func updateDisplayName(_ displayName: String) async throws -> User {
+        return User(id: "preview-user", email: "preview@example.com", displayName: displayName)
+    }
+    
+    func updatePhotoURL(_ photoURL: URL) async throws -> User {
+        return User(id: "preview-user", email: "preview@example.com", displayName: "Preview User")
+    }
+    
+    func reauthenticate(email: String, password: String) async throws {
+        // No-op for previews
+    }
+    
+    func authStateChanges() -> AnyPublisher<User?, Never> {
+        Just(User(id: "preview-user", email: "preview@example.com", displayName: "Preview User")).eraseToAnyPublisher()
     }
 }
 
