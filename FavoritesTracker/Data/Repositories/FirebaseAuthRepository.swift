@@ -18,45 +18,53 @@ final class FirebaseAuthRepository: AuthRepositoryProtocol, @unchecked Sendable 
     // MARK: - AuthRepositoryProtocol Implementation
     
     func signIn(email: String, password: String) async throws -> User {
-        let authResult = try await auth.signIn(withEmail: email, password: password)
-        let firebaseUser = authResult.user
-        
-        // Create or update user document in Firestore
-        let user = User(
-            id: firebaseUser.uid,
-            email: firebaseUser.email ?? email,
-            displayName: firebaseUser.displayName,
-            photoURL: firebaseUser.photoURL,
-            isEmailVerified: firebaseUser.isEmailVerified
-        )
-        
-        try await createOrUpdateUserDocument(user)
-        return user
+        do {
+            let authResult = try await auth.signIn(withEmail: email, password: password)
+            let firebaseUser = authResult.user
+            
+            // Create or update user document in Firestore
+            let user = User(
+                id: firebaseUser.uid,
+                email: firebaseUser.email ?? email,
+                displayName: firebaseUser.displayName,
+                photoURL: firebaseUser.photoURL,
+                isEmailVerified: firebaseUser.isEmailVerified
+            )
+            
+            try await createOrUpdateUserDocument(user)
+            return user
+        } catch {
+            throw mapFirebaseError(error)
+        }
     }
     
     func signUp(email: String, password: String) async throws -> User {
-        let authResult = try await auth.createUser(withEmail: email, password: password)
-        let firebaseUser = authResult.user
-        
-        // Create user document and profile in Firestore
-        let user = User(
-            id: firebaseUser.uid,
-            email: email,
-            displayName: firebaseUser.displayName,
-            photoURL: firebaseUser.photoURL,
-            isEmailVerified: firebaseUser.isEmailVerified
-        )
-        
-        try await createOrUpdateUserDocument(user)
-        
-        // Create initial user profile
-        let userProfile = UserProfile(userId: user.id, displayName: user.displayName ?? "User")
-        try await createInitialUserProfile(userProfile)
-        
-        // Send email verification
-        try await firebaseUser.sendEmailVerification()
-        
-        return user
+        do {
+            let authResult = try await auth.createUser(withEmail: email, password: password)
+            let firebaseUser = authResult.user
+            
+            // Create user document and profile in Firestore
+            let user = User(
+                id: firebaseUser.uid,
+                email: email,
+                displayName: firebaseUser.displayName,
+                photoURL: firebaseUser.photoURL,
+                isEmailVerified: firebaseUser.isEmailVerified
+            )
+            
+            try await createOrUpdateUserDocument(user)
+            
+            // Create initial user profile
+            let userProfile = UserProfile(userId: user.id, displayName: user.displayName ?? "User")
+            try await createInitialUserProfile(userProfile)
+            
+            // Send email verification
+            try await firebaseUser.sendEmailVerification()
+            
+            return user
+        } catch {
+            throw mapFirebaseError(error)
+        }
     }
     
     func signOut() async throws {
@@ -85,7 +93,7 @@ final class FirebaseAuthRepository: AuthRepositoryProtocol, @unchecked Sendable 
         _ = try await firestore.runTransaction { transaction, errorPointer in
             // Delete user profile
             let userPath = FirestoreCollection.Paths.user(userId)
-            let profileQuery = self.firestore.collection("\(userPath)/\(FirestoreCollection.profiles)")
+            _ = self.firestore.collection("\(userPath)/\(FirestoreCollection.profiles)")
             
             // Note: In a production app, you'd want to delete all user data
             // including collections, items, etc. This is a simplified version
@@ -114,7 +122,7 @@ final class FirebaseAuthRepository: AuthRepositoryProtocol, @unchecked Sendable 
             throw AuthError.userNotSignedIn
         }
         
-        try await firebaseUser.updateEmail(to: newEmail)
+        try await firebaseUser.sendEmailVerification(beforeUpdatingEmail: newEmail)
         
         let user = User(
             id: firebaseUser.uid,
@@ -254,6 +262,47 @@ final class FirebaseAuthRepository: AuthRepositoryProtocol, @unchecked Sendable 
         let profilePath = FirestoreCollection.Paths.userProfile(profile.userId, profileId: profile.id)
         
         try await firestore.document(profilePath).setData(try profileDTO.asDictionary())
+    }
+    
+    // MARK: - Private Helper Methods
+    
+    /// Maps Firebase Auth errors to custom AuthError cases
+    private func mapFirebaseError(_ error: Error) -> AuthError {
+        let nsError = error as NSError
+        
+        // Check for Firebase internal error with CONFIGURATION_NOT_FOUND
+        if nsError.code == 17999 && nsError.domain == "FIRAuthErrorDomain" {
+            if let underlyingError = nsError.userInfo[NSUnderlyingErrorKey] as? NSError,
+               let responseData = underlyingError.userInfo["FIRAuthErrorUserInfoDeserializedResponseKey"] as? [String: Any],
+               let message = responseData["message"] as? String,
+               message == "CONFIGURATION_NOT_FOUND" {
+                return .unknown(NSError(domain: "FavoritesTracker", 
+                                       code: 1001, 
+                                       userInfo: [NSLocalizedDescriptionKey: "Firebase Authentication is not enabled. Please enable Email/Password authentication in your Firebase Console at https://console.firebase.google.com"]))
+            }
+        }
+        
+        if let authErrorCode = AuthErrorCode(rawValue: nsError.code) {
+            switch authErrorCode {
+            case .emailAlreadyInUse:
+                return .emailAlreadyInUse
+            case .weakPassword:
+                return .weakPassword
+            case .invalidEmail, .wrongPassword, .userNotFound:
+                return .invalidCredentials
+            case .networkError:
+                return .networkError(error)
+            default:
+                return .unknown(error)
+            }
+        } else {
+            // Handle network and other non-Firebase errors
+            if nsError.domain == NSURLErrorDomain {
+                return .networkError(error)
+            } else {
+                return .unknown(error)
+            }
+        }
     }
 }
 

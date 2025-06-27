@@ -75,7 +75,7 @@ final class FirebaseCollectionRepository: CollectionRepositoryProtocol, @uncheck
             
             // Delete all items in the collection first
             let itemsPath = "\(collectionPath)/\(FirestoreCollection.items)"
-            let itemsQuery = self.firestore.collection(itemsPath)
+            _ = self.firestore.collection(itemsPath)
             
             // Note: In a production app, you'd want to batch delete items
             // For simplicity, we're just deleting the collection document

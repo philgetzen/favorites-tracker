@@ -348,7 +348,7 @@ struct HomeViewRefactored: View {
     private func performFilteredSearch() {
         Task {
             // First perform the basic search
-            await searchViewModel.performSearch()
+            searchViewModel.performSearch()
             
             // Then apply filters to the search results
             let filteredResults = filterViewModel.applyFilters(to: searchViewModel.searchResults)

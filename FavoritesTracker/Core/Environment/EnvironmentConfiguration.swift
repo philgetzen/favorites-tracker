@@ -1,11 +1,11 @@
 import Foundation
 
-public enum Environment: Sendable {
+public enum AppEnvironment: Sendable {
     case debug
     case testing  
     case release
     
-    public static var current: Environment {
+    public static var current: AppEnvironment {
         #if DEBUG
             return .debug
         #elseif TESTING
@@ -17,7 +17,7 @@ public enum Environment: Sendable {
 }
 
 public struct EnvironmentConfiguration: Sendable {
-    public let environment: Environment
+    public let environment: AppEnvironment
     public let baseURL: String
     public let apiKey: String
     public let enableLogging: Bool
@@ -25,9 +25,9 @@ public struct EnvironmentConfiguration: Sendable {
     public let analyticsEnabled: Bool
     public let crashReportingEnabled: Bool
     
-    public static let shared = EnvironmentConfiguration(environment: Environment.current)
+    public static let shared = EnvironmentConfiguration(environment: AppEnvironment.current)
     
-    public init(environment: Environment) {
+    public init(environment: AppEnvironment) {
         self.environment = environment
         
         switch environment {
@@ -35,7 +35,7 @@ public struct EnvironmentConfiguration: Sendable {
             self.baseURL = "https://api-dev.favoritesapp.com"
             self.apiKey = "dev_api_key"
             self.enableLogging = true
-            self.useFirebaseEmulator = true
+            self.useFirebaseEmulator = false  // Disabled - emulator not running
             self.analyticsEnabled = false
             self.crashReportingEnabled = false
             

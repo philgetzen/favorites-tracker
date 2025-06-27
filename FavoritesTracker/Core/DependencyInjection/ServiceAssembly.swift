@@ -9,6 +9,7 @@ import FirebaseStorage
 struct ServiceAssembly {
     
     /// Register all app dependencies
+    @MainActor
     static func registerDependencies() {
         registerRepositories()
         registerUseCases()
@@ -74,12 +75,16 @@ struct ServiceAssembly {
     
     // MARK: - Core Services
     
+    @MainActor
     private static func registerServices() {
         // Core services
         DIContainer.shared.register(UserDefaults.self, instance: UserDefaults.standard)
         
         // Network monitoring
         DIContainer.shared.register(NetworkMonitor.self, instance: NetworkMonitor())
+        
+        // Authentication manager
+        DIContainer.shared.register(AuthenticationManager.self, instance: AuthenticationManager.shared)
     }
 }
 

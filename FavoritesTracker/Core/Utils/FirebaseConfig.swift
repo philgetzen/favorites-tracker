@@ -1,9 +1,8 @@
 import Foundation
 import Firebase
-// TODO: Add these imports when Firebase Auth, Firestore, and Storage dependencies are added
-// import FirebaseAuth
-// import FirebaseFirestore
-// import FirebaseStorage
+import FirebaseAuth
+import FirebaseFirestore
+import FirebaseStorage
 
 /// Firebase configuration helper for development and production environments
 struct FirebaseConfig {
@@ -45,7 +44,8 @@ struct FirebaseConfig {
     
     /// Configure Firebase emulators for local development
     private static func configureEmulators() {
-        // TODO: Uncomment when Firebase Auth, Firestore, and Storage dependencies are added
+        // Note: Emulators temporarily disabled due to Java dependency
+        // Uncomment these when Firebase emulator suite is installed
         
         // Configure Auth emulator
         // Auth.auth().useEmulator(withHost: "localhost", port: 9099)
@@ -60,9 +60,8 @@ struct FirebaseConfig {
         // Configure Storage emulator
         // Storage.storage().useEmulator(withHost: "localhost", port: 9199)
         
-        print("🔥 Firebase emulators configured for local development")
-        print("   - Auth: localhost:9099 (TODO: Add FirebaseAuth dependency)")
-        print("   - Firestore: localhost:8080 (TODO: Add FirebaseFirestore dependency)")
-        print("   - Storage: localhost:9199 (TODO: Add FirebaseStorage dependency)")
+        print("🔥 Firebase configured for production (emulators disabled)")
+        print("   - Using production Firebase servers")
+        print("   - To enable emulators: install Firebase CLI with Java")
     }
 }

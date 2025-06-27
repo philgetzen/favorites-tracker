@@ -80,25 +80,25 @@ struct OfflineStatusDetailsView: View {
                         .font(.headline)
                     
                     VStack(alignment: .leading, spacing: 8) {
-                        FeatureRow(
+                        OfflineFeatureRow(
                             icon: "checkmark.circle.fill",
                             title: "View Data", 
                             description: "Access your cached collections and items"
                         )
                         
-                        FeatureRow(
+                        OfflineFeatureRow(
                             icon: "plus.circle.fill",
                             title: "Create Items", 
                             description: "Add new items that will sync when online"
                         )
                         
-                        FeatureRow(
+                        OfflineFeatureRow(
                             icon: "pencil.circle.fill",
                             title: "Edit Items", 
                             description: "Make changes that will be saved automatically"
                         )
                         
-                        FeatureRow(
+                        OfflineFeatureRow(
                             icon: "arrow.triangle.2.circlepath",
                             title: "Auto Sync", 
                             description: "Changes sync automatically when connection returns"
@@ -129,7 +129,7 @@ struct OfflineStatusDetailsView: View {
 }
 
 /// Row component for displaying offline feature information
-private struct FeatureRow: View {
+private struct OfflineFeatureRow: View {
     let icon: String
     let title: String
     let description: String

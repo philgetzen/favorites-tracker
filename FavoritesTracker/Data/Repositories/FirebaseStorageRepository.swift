@@ -26,11 +26,16 @@ final class FirebaseStorageRepository: StorageRepositoryProtocol, @unchecked Sen
             "platform": "iOS"
         ]
         
-        // Upload the data
-        let uploadTask = storageRef.putData(data, metadata: metadata)
-        
-        // Wait for upload completion
-        _ = try await uploadTask
+        // Upload the data and wait for completion
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            _ = storageRef.putData(data, metadata: metadata) { metadata, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
         
         // Get download URL
         let downloadURL = try await storageRef.downloadURL()

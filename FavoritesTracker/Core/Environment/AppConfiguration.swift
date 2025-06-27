@@ -56,7 +56,7 @@ public final class AppConfiguration: @unchecked Sendable {
         }
     }
     
-    public var currentEnvironment: Environment {
+    public var currentEnvironment: AppEnvironment {
         environmentConfig.environment
     }
     
