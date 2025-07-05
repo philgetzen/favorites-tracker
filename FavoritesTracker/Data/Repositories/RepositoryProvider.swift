@@ -122,31 +122,9 @@ final class RepositoryProvider: @unchecked Sendable {
     
     // MARK: - Utility Methods
     
-    /// Clear all cached data
+    /// Clear all cached data (for debugging purposes)
     func clearCache() async throws {
         try await firestore.clearPersistence()
-    }
-    
-    /// Enable offline mode
-    func enableOfflineMode() async throws {
-        try await firestore.disableNetwork()
-    }
-    
-    /// Enable online mode
-    func enableOnlineMode() async throws {
-        try await firestore.enableNetwork()
-    }
-    
-    /// Wait for pending writes to complete
-    func waitForPendingWrites() async throws {
-        try await firestore.waitForPendingWrites()
-    }
-    
-    /// Get current network status
-    func isOffline() -> Bool {
-        // This is a simplified check - in a real implementation,
-        // you'd monitor network connectivity
-        return false
     }
 }
 
@@ -189,69 +167,3 @@ extension RepositoryProvider: RepositoryFactory {
     }
 }
 
-// MARK: - Repository Configuration
-
-/// Configuration options for repositories
-struct RepositoryConfiguration {
-    let environment: Environment
-    let cacheSize: Int64
-    let enablePersistence: Bool
-    let enableNetworkLogging: Bool
-    
-    enum Environment {
-        case development
-        case testing
-        case production
-    }
-    
-    static let development = RepositoryConfiguration(
-        environment: .development,
-        cacheSize: Int64.max,
-        enablePersistence: true,
-        enableNetworkLogging: true
-    )
-    
-    static let testing = RepositoryConfiguration(
-        environment: .testing,
-        cacheSize: 50 * 1024 * 1024, // 50MB
-        enablePersistence: false,
-        enableNetworkLogging: true
-    )
-    
-    static let production = RepositoryConfiguration(
-        environment: .production,
-        cacheSize: 100 * 1024 * 1024, // 100MB
-        enablePersistence: true,
-        enableNetworkLogging: false
-    )
-}
-
-// MARK: - Repository Metrics
-
-/// Metrics and monitoring for repository operations
-@MainActor
-final class RepositoryMetrics {
-    static let shared = RepositoryMetrics()
-    
-    private var operationCounts: [String: Int] = [:]
-    private var errorCounts: [String: Int] = [:]
-    
-    private init() {}
-    
-    func recordOperation(_ operation: String) {
-        operationCounts[operation, default: 0] += 1
-    }
-    
-    func recordError(_ error: String) {
-        errorCounts[error, default: 0] += 1
-    }
-    
-    func getMetrics() -> (operations: [String: Int], errors: [String: Int]) {
-        return (operationCounts, errorCounts)
-    }
-    
-    func reset() {
-        operationCounts.removeAll()
-        errorCounts.removeAll()
-    }
-}

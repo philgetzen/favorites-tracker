@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// SwiftUI view for displaying detailed information about a single item
-struct ItemDetailView: View {
-    @StateObject private var viewModel: ItemDetailViewModel
+/// Refactored SwiftUI view for displaying detailed information about a single item using coordinator ViewModel pattern
+struct ItemDetailViewRefactored: View {
+    @StateObject private var viewModel: ItemDetailViewModelRefactored
     @SwiftUI.Environment(\.dismiss) private var dismiss
     
     init(
@@ -11,7 +11,7 @@ struct ItemDetailView: View {
         collectionRepository: CollectionRepositoryProtocol,
         storageRepository: StorageRepositoryProtocol
     ) {
-        self._viewModel = StateObject(wrappedValue: ItemDetailViewModel(
+        self._viewModel = StateObject(wrappedValue: ItemDetailViewModelRefactored(
             itemId: itemId,
             itemRepository: itemRepository,
             collectionRepository: collectionRepository,
@@ -50,7 +50,7 @@ struct ItemDetailView: View {
                 }
                 .sheet(isPresented: $viewModel.showingEditSheet) {
                     if let editViewModel = viewModel.getEditViewModel() {
-                        ItemFormView(
+                        ItemFormViewRefactored(
                             userId: editViewModel.userId,
                             collectionId: editViewModel.collectionId,
                             editingItem: editViewModel.editingItem,
@@ -197,15 +197,12 @@ struct ItemDetailView: View {
                 .font(.headline)
                 .foregroundColor(.primary)
             
-            HStack(spacing: 8) {
-                StarRatingView(rating: item.rating ?? 0, maxRating: 5, starSize: 18)
-                
-                Text(String(format: "%.1f", item.rating ?? 0))
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                
-                Spacer()
-            }
+            StarRatingView(
+                rating: .constant(item.rating),
+                isInteractive: false,
+                size: 24,
+                spacing: 4
+            )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -216,19 +213,16 @@ struct ItemDetailView: View {
                 .font(.headline)
                 .foregroundColor(.primary)
             
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(item.tags, id: \.self) { tag in
-                        Text(tag)
-                            .font(.caption)
-                            .foregroundColor(.blue)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color.blue.opacity(0.1))
-                            .cornerRadius(16)
-                    }
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 8) {
+                ForEach(item.tags, id: \.self) { tag in
+                    Text(tag)
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.accentColor.opacity(0.1))
+                        .foregroundColor(.accentColor)
+                        .cornerRadius(8)
                 }
-                .padding(.horizontal, 1) // Prevent clipping
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -236,69 +230,61 @@ struct ItemDetailView: View {
     
     private func customFieldsSection(item: Item) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Additional Information")
+            Text("Additional Details")
                 .font(.headline)
                 .foregroundColor(.primary)
             
             VStack(spacing: 8) {
                 ForEach(Array(item.customFields.keys.sorted()), id: \.self) { key in
-                    HStack {
-                        Text(key)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.primary)
-                        
-                        Spacer()
-                        
-                        Text(item.customFields[key]?.stringValue ?? "")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                    if let value = item.customFields[key] {
+                        customFieldRow(key: key, value: value)
                     }
                 }
             }
-            .padding()
-            .background(Color(.systemGray6))
-            .cornerRadius(8)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
     
+    private func customFieldRow(key: String, value: CustomFieldValue) -> some View {
+        HStack {
+            Text(key.capitalized)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(.secondary)
+            
+            Spacer()
+            
+            Text(value.displayValue)
+                .font(.subheadline)
+                .foregroundColor(.primary)
+        }
+        .padding(.vertical, 2)
+    }
+    
     private func metadataSection(item: Item) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Details")
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Information")
                 .font(.headline)
                 .foregroundColor(.primary)
             
-            VStack(spacing: 8) {
+            VStack(spacing: 6) {
                 HStack {
                     Text("Created")
-                        .font(.caption)
                         .foregroundColor(.secondary)
-                    
                     Spacer()
-                    
                     Text(viewModel.formattedCreatedDate)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.primary)
                 }
                 
-                if !Calendar.current.isDate(item.createdAt, inSameDayAs: item.updatedAt) {
-                    HStack {
-                        Text("Last Updated")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        Spacer()
-                        
-                        Text(viewModel.formattedUpdatedDate)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+                HStack {
+                    Text("Last Updated")
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Text(viewModel.formattedUpdatedDate)
+                        .foregroundColor(.primary)
                 }
             }
-            .padding()
-            .background(Color(.systemGray6))
-            .cornerRadius(8)
+            .font(.subheadline)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -307,17 +293,17 @@ struct ItemDetailView: View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 50))
-                .foregroundColor(.secondary)
+                .foregroundColor(.orange)
             
             Text("Item Not Found")
                 .font(.title2)
-                .fontWeight(.medium)
-                .foregroundColor(.primary)
+                .fontWeight(.semibold)
             
-            Text("This item could not be loaded or may have been deleted.")
-                .font(.subheadline)
+            Text("The item you're looking for might have been deleted or moved.")
+                .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
+                .padding(.horizontal)
             
             Button("Go Back") {
                 dismiss()
@@ -330,21 +316,16 @@ struct ItemDetailView: View {
     
     private var toolbarMenu: some View {
         Menu {
-            Button(action: viewModel.editItem) {
+            Button(action: {
+                viewModel.editItem()
+            }) {
                 Label("Edit", systemImage: "pencil")
             }
             
-            Button(action: viewModel.deleteItem) {
-                Label("Delete", systemImage: "trash")
-            }
-            .foregroundColor(.red)
-            
             Button(action: {
-                Task {
-                    await viewModel.refreshItem()
-                }
+                viewModel.deleteItem()
             }) {
-                Label("Refresh", systemImage: "arrow.clockwise")
+                Label("Delete", systemImage: "trash")
             }
         } label: {
             Image(systemName: "ellipsis.circle")
@@ -404,7 +385,7 @@ private struct ImageViewer: View {
 // MARK: - Previews
 
 #Preview("Item with Full Data") {
-    ItemDetailView(
+    ItemDetailViewRefactored(
         itemId: "preview-item",
         itemRepository: PreviewRepositoryProvider.shared.itemRepository,
         collectionRepository: PreviewRepositoryProvider.shared.collectionRepository,
@@ -413,10 +394,7 @@ private struct ImageViewer: View {
 }
 
 #Preview("Item Loading") {
-    let viewModel = ItemDetailViewModel.preview()
-    viewModel.isLoading = true
-    
-    return ItemDetailView(
+    ItemDetailViewRefactored(
         itemId: "preview-item",
         itemRepository: PreviewRepositoryProvider.shared.itemRepository,
         collectionRepository: PreviewRepositoryProvider.shared.collectionRepository,
@@ -425,20 +403,10 @@ private struct ImageViewer: View {
 }
 
 #Preview("Item Not Found") {
-    ItemDetailView(
+    ItemDetailViewRefactored(
         itemId: "nonexistent-item",
         itemRepository: PreviewRepositoryProvider.shared.itemRepository,
         collectionRepository: PreviewRepositoryProvider.shared.collectionRepository,
         storageRepository: PreviewRepositoryProvider.shared.storageRepository
     )
-}
-
-#Preview("Dark Mode") {
-    ItemDetailView(
-        itemId: "preview-item",
-        itemRepository: PreviewRepositoryProvider.shared.itemRepository,
-        collectionRepository: PreviewRepositoryProvider.shared.collectionRepository,
-        storageRepository: PreviewRepositoryProvider.shared.storageRepository
-    )
-    .preferredColorScheme(.dark)
 }

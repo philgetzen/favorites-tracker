@@ -25,7 +25,7 @@ struct SignInView: View {
             .navigationBarTitleDisplayMode(.large)
             .navigationBarHidden(false)
             .sheet(isPresented: $showSignUp) {
-                SignUpView()
+                SignUpViewRefactored()
             }
             .sheet(isPresented: $showForgotPassword) {
                 ForgotPasswordView()

@@ -1,18 +1,13 @@
 import SwiftUI
 
-/// Refactored main home screen using separated ViewModels for better maintainability
+/// Refactored main home screen using the coordinator ViewModel pattern
 struct HomeViewRefactored: View {
     
-    // MARK: - ViewModels
+    // MARK: - Coordinator ViewModel
     
-    @StateObject private var dataViewModel: HomeDataViewModel
-    @StateObject private var searchViewModel: HomeSearchViewModel
-    @StateObject private var filterViewModel: HomeFilterViewModel
-    @StateObject private var formViewModel: HomeFormViewModel
-    
-    // MARK: - State
-    
-    @State private var selectedTab = 0
+    @StateObject private var viewModel: HomeViewModelRefactored
+    @StateObject private var authManager = AuthenticationManager.shared
+    @State private var showingProfileModal = false
     
     // MARK: - Initialization
     
@@ -21,17 +16,11 @@ struct HomeViewRefactored: View {
         collectionRepository: CollectionRepositoryProtocol = PreviewRepositoryProvider.shared.collectionRepository,
         storageRepository: StorageRepositoryProtocol = PreviewRepositoryProvider.shared.storageRepository
     ) {
-        let homeService = HomeService(
+        self._viewModel = StateObject(wrappedValue: HomeViewModelRefactored(
             itemRepository: itemRepository,
-            collectionRepository: collectionRepository
-        )
-        
-        let dataVM = HomeDataViewModel(homeService: homeService)
-        
-        self._dataViewModel = StateObject(wrappedValue: dataVM)
-        self._searchViewModel = StateObject(wrappedValue: HomeSearchViewModel(homeService: homeService))
-        self._filterViewModel = StateObject(wrappedValue: HomeFilterViewModel(homeService: homeService))
-        self._formViewModel = StateObject(wrappedValue: HomeFormViewModel(dataViewModel: dataVM))
+            collectionRepository: collectionRepository,
+            storageRepository: storageRepository
+        ))
     }
     
     var body: some View {
@@ -41,7 +30,7 @@ struct HomeViewRefactored: View {
                 headerView
                 
                 // Content
-                TabView(selection: $selectedTab) {
+                TabView(selection: $viewModel.selectedTab) {
                     collectionsView
                         .tabItem {
                             Image(systemName: "folder")
@@ -69,18 +58,27 @@ struct HomeViewRefactored: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
-                        formViewModel.showItemForm()
+                        viewModel.showItemForm()
                     } label: {
                         Image(systemName: "plus")
                     }
                 }
+                
+                ToolbarItem(placement: .navigationBarLeading) {
+                    UserInitialsView(
+                        displayName: authManager.currentUser?.displayName
+                    )
+                    .onTapGesture {
+                        showingProfileModal = true
+                    }
+                }
             }
             .task {
-                await dataViewModel.loadData()
+                await viewModel.loadData()
             }
-            .sheet(isPresented: $formViewModel.showingItemForm) {
-                if let collectionId = dataViewModel.defaultCollectionId {
-                    ItemFormView(
+            .sheet(isPresented: $viewModel.showingItemForm) {
+                if let collectionId = viewModel.defaultCollectionId {
+                    ItemFormViewRefactored(
                         userId: "preview-user-id",
                         collectionId: collectionId,
                         itemRepository: DIContainer.shared.resolve(ItemRepositoryProtocol.self),
@@ -88,296 +86,314 @@ struct HomeViewRefactored: View {
                         storageRepository: DIContainer.shared.resolve(StorageRepositoryProtocol.self)
                     )
                     .onDisappear {
-                        formViewModel.handleItemFormDismissal()
+                        viewModel.refreshAfterItemCreation()
                     }
                 } else {
                     Text("No collections available. Create a collection first.")
                         .padding()
                 }
             }
-            .sheet(isPresented: $formViewModel.showingAdvancedSearch) {
+            .sheet(isPresented: $viewModel.showingAdvancedSearch) {
                 AdvancedSearchView(
-                    searchQuery: $searchViewModel.searchText,
-                    searchFilters: $filterViewModel.searchFilters,
-                    isPresented: $formViewModel.showingAdvancedSearch,
+                    searchQuery: $viewModel.searchText,
+                    searchFilters: $viewModel.searchFilters,
+                    isPresented: $viewModel.showingAdvancedSearch,
                     onSearch: { query, filters in
-                        searchViewModel.performAdvancedSearch(query: query, filters: filters)
+                        Task {
+                            await viewModel.performAdvancedSearch(query: query, filters: filters)
+                        }
                     },
                     onClear: {
-                        searchViewModel.clearSearch()
-                        filterViewModel.resetFilters()
+                        viewModel.clearSearch()
+                    }
+                )
+            }
+            .sheet(isPresented: $showingProfileModal) {
+                ProfileModal(
+                    isPresented: $showingProfileModal,
+                    currentUser: authManager.currentUser,
+                    onSignOut: {
+                        await signOut()
+                    },
+                    onUpdateDisplayName: { newDisplayName in
+                        try await updateDisplayName(newDisplayName)
                     }
                 )
             }
         }
+        .overlay {
+            if viewModel.combinedIsLoading {
+                LoadingStateView()
+            }
+        }
+        .alert("Error", isPresented: $viewModel.showError) {
+            Button("OK") {
+                viewModel.clearError()
+            }
+        } message: {
+            Text(viewModel.combinedErrorMessage ?? "An unknown error occurred")
+        }
+    }
+    
+    // MARK: - Profile Actions
+    
+    private func signOut() async {
+        do {
+            try await authManager.signOut()
+        } catch {
+            print("Sign out error: \(error)")
+        }
+    }
+    
+    private func updateDisplayName(_ newDisplayName: String) async throws {
+        try await authManager.updateDisplayName(newDisplayName)
     }
     
     // MARK: - Header View
     
     private var headerView: some View {
-        VStack(spacing: 8) {
-            HStack {
-                VStack(alignment: .leading) {
-                    Text("Welcome back!")
-                        .font(.headline)
-                    Text("You have \(dataViewModel.collections.count) collections")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-                
-                Spacer()
-                
-                Button {
-                    // Profile action
-                } label: {
-                    Circle()
-                        .fill(Color.blue.gradient)
-                        .frame(width: 40, height: 40)
-                        .overlay(
-                            Text("JD")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                        )
-                }
-            }
-            .padding(.horizontal)
-            .padding(.top)
-            
+        VStack(spacing: 12) {
             // Search Bar
             HStack {
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.secondary)
                     
-                    TextField("Search items...", text: $searchViewModel.searchText)
-                        .textFieldStyle(.plain)
-                        .onSubmit {
-                            performFilteredSearch()
-                        }
-                        .onChange(of: searchViewModel.searchText) { oldValue, newValue in
-                            if newValue.isEmpty {
-                                searchViewModel.clearSearch()
-                            } else if newValue.count >= 2 {
-                                performFilteredSearch()
-                            }
-                        }
-                    
-                    if !searchViewModel.searchText.isEmpty {
-                        Button(action: {
-                            searchViewModel.clearSearch()
-                            filterViewModel.resetFilters()
-                        }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.secondary)
-                        }
-                    }
+                    TextField("Search items...", text: $viewModel.searchText)
+                        .textFieldStyle(PlainTextFieldStyle())
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(Color(.systemGray6))
-                .cornerRadius(8)
+                .cornerRadius(10)
                 
-                // Advanced search button
-                Button(action: { formViewModel.showAdvancedSearch() }) {
-                    Image(systemName: "slider.horizontal.3")
-                        .foregroundColor(.blue)
-                        .font(.system(size: 18))
+                if viewModel.isSearching || !viewModel.searchText.isEmpty {
+                    Button("Cancel") {
+                        viewModel.clearSearch()
+                    }
+                    .foregroundColor(.accentColor)
                 }
-                .frame(width: 40, height: 40)
-                .background(Color.blue.opacity(0.1))
-                .cornerRadius(8)
                 
-                // Filter button
-                Menu {
-                    Section("Filters") {
-                        Toggle("Favorites Only", isOn: $filterViewModel.showFavoritesOnly)
-                            .onChange(of: filterViewModel.showFavoritesOnly) { _, _ in
-                                if searchViewModel.hasActiveSearch {
-                                    performFilteredSearch()
-                                }
-                            }
-                        
-                        VStack {
-                            Text("Minimum Rating: \(filterViewModel.minimumRating, specifier: "%.1f")")
-                            Slider(value: $filterViewModel.minimumRating, in: 0...5, step: 0.5)
-                                .onChange(of: filterViewModel.minimumRating) { _, _ in
-                                    if searchViewModel.hasActiveSearch {
-                                        performFilteredSearch()
-                                    }
-                                }
-                        }
-                    }
-                    
-                    Section {
-                        Button("Clear Filters") {
-                            filterViewModel.resetFilters()
-                            if searchViewModel.hasActiveSearch {
-                                performFilteredSearch()
-                            }
-                        }
-                    }
+                Button {
+                    viewModel.showAdvancedSearch()
                 } label: {
-                    Image(systemName: filterViewModel.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
-                        .foregroundColor(filterViewModel.hasActiveFilters ? .blue : .secondary)
+                    Image(systemName: "slider.horizontal.3")
                 }
+                .foregroundColor(.accentColor)
             }
             .padding(.horizontal)
-            .padding(.bottom, 8)
             
-            Divider()
+            // Filter Pills
+            if viewModel.hasActiveFilters {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        if viewModel.showFavoritesOnly {
+                            FilterPill(title: "Favorites", isActive: true) {
+                                viewModel.toggleFavoritesFilter()
+                            }
+                        }
+                        
+                        if viewModel.minimumRating > 0 {
+                            FilterPill(title: "Rating \(Int(viewModel.minimumRating))+", isActive: true) {
+                                viewModel.setMinimumRating(0)
+                            }
+                        }
+                        
+                        Button("Clear All") {
+                            viewModel.resetFilters()
+                        }
+                        .font(.caption)
+                        .foregroundColor(.red)
+                    }
+                    .padding(.horizontal)
+                }
+            }
         }
-        .background(Color(.systemBackground))
+        .padding(.vertical, 8)
     }
     
     // MARK: - Collections View
     
     private var collectionsView: some View {
-        ScrollView {
-            if dataViewModel.collections.isEmpty {
-                EmptyStateView(
-                    title: "No Collections Yet",
-                    message: "Start organizing your favorites by creating your first collection.",
-                    systemImage: "folder.badge.plus",
-                    actionTitle: "Create Collection",
-                    action: { }
-                )
-                .frame(minHeight: 400)
+        VStack {
+            if viewModel.isSearching && !viewModel.searchResults.isEmpty {
+                searchResultsView
+            } else if viewModel.collections.isEmpty {
+                emptyCollectionsView
             } else {
-                LazyVGrid(columns: [
-                    GridItem(.flexible()),
-                    GridItem(.flexible())
-                ], spacing: 16) {
-                    ForEach(dataViewModel.collections, id: \.id) { collection in
-                        CollectionCardView(collection: collection)
-                    }
-                }
-                .padding()
+                CollectionGridView(collections: viewModel.collections)
             }
         }
+        .padding()
     }
     
     // MARK: - Recent Items View
     
     private var recentItemsView: some View {
-        return ScrollView {
-            let itemsToShow = searchViewModel.hasActiveSearch ? searchViewModel.searchResults : dataViewModel.items
-            let emptyTitle = searchViewModel.hasActiveSearch ? "No Search Results" : "No Recent Items"
-            let emptyMessage = searchViewModel.hasActiveSearch ? "Try different search terms or check your spelling." : "Items you add or view will appear here."
-            let emptyIcon = searchViewModel.hasActiveSearch ? "magnifyingglass" : "clock"
-            
-            if itemsToShow.isEmpty {
-                EmptyStateView(
-                    title: emptyTitle,
-                    message: emptyMessage,
-                    systemImage: emptyIcon,
-                    actionTitle: searchViewModel.hasActiveSearch ? "Clear Search" : "Browse Collections",
-                    action: { 
-                        if searchViewModel.hasActiveSearch {
-                            searchViewModel.clearSearch()
-                            filterViewModel.resetFilters()
-                        } else {
-                            selectedTab = 0 
-                        }
-                    }
-                )
-                .frame(minHeight: 400)
+        VStack {
+            if viewModel.isSearching && !viewModel.searchResults.isEmpty {
+                searchResultsView
+            } else if viewModel.items.isEmpty {
+                emptyItemsView
             } else {
-                VStack(alignment: .leading, spacing: 16) {
-                    // Search results header
-                    if searchViewModel.hasActiveSearch {
-                        HStack {
-                            Text("Search Results (\(searchViewModel.searchResultsCount))")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                            
-                            Spacer()
-                            
-                            Button("Clear") {
-                                searchViewModel.clearSearch()
-                                filterViewModel.resetFilters()
-                            }
-                            .font(.subheadline)
-                            .foregroundColor(.blue)
-                        }
-                        .padding(.horizontal)
-                    }
-                    
-                    LazyVGrid(columns: [
-                        GridItem(.flexible()),
-                        GridItem(.flexible())
-                    ], spacing: 16) {
-                        ForEach(itemsToShow, id: \.id) { item in
-                            ItemCardView(
-                                item: item,
-                                itemRepository: DIContainer.shared.resolve(ItemRepositoryProtocol.self),
-                                collectionRepository: DIContainer.shared.resolve(CollectionRepositoryProtocol.self),
-                                storageRepository: DIContainer.shared.resolve(StorageRepositoryProtocol.self)
-                            )
-                        }
-                    }
-                    .padding()
-                }
+                ItemGridView(items: viewModel.items)
             }
         }
+        .padding()
     }
     
     // MARK: - Templates View
     
     private var templatesView: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Popular Templates")
-                    .font(.headline)
-                    .padding(.horizontal)
-                
-                LazyVGrid(columns: [
-                    GridItem(.flexible()),
-                    GridItem(.flexible())
-                ], spacing: 16) {
-                    ForEach(PreviewHelpers.sampleTemplates, id: \.id) { template in
-                        TemplateCardView(template: template)
-                    }
-                }
-                .padding(.horizontal)
-            }
-        }
-    }
-    
-    // MARK: - Helper Methods
-    
-    private func performFilteredSearch() {
-        Task {
-            // First perform the basic search
-            searchViewModel.performSearch()
+        VStack {
+            Text("Templates")
+                .font(.title2)
+                .padding()
             
-            // Then apply filters to the search results
-            let filteredResults = filterViewModel.applyFilters(to: searchViewModel.searchResults)
-            await MainActor.run {
-                searchViewModel.updateSearchResults(with: filteredResults)
+            Text("Template functionality coming soon!")
+                .foregroundColor(.secondary)
+            
+            Spacer()
+        }
+    }
+    
+    // MARK: - Search Results View
+    
+    private var searchResultsView: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Search Results")
+                    .font(.headline)
+                
+                Spacer()
+                
+                Text("\(viewModel.searchResults.count) items")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            ItemGridView(items: viewModel.searchResults)
+        }
+    }
+    
+    // MARK: - Empty State Views
+    
+    private var emptyCollectionsView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "folder")
+                .font(.system(size: 60))
+                .foregroundColor(.secondary)
+            
+            Text("No Collections Yet")
+                .font(.title2)
+                .fontWeight(.medium)
+            
+            Text("Create your first collection to start organizing your favorite items")
+                .font(.body)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+            
+            Button {
+                viewModel.showItemForm()
+            } label: {
+                Text("Add First Item")
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(Color.accentColor)
+                    .cornerRadius(8)
+            }
+        }
+        .padding()
+    }
+    
+    private var emptyItemsView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "clock")
+                .font(.system(size: 60))
+                .foregroundColor(.secondary)
+            
+            Text("No Recent Items")
+                .font(.title2)
+                .fontWeight(.medium)
+            
+            Text("Items you create or update will appear here")
+                .font(.body)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding()
+    }
+}
+
+// MARK: - Supporting Views
+
+private struct FilterPill: View {
+    let title: String
+    let isActive: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Text(title)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                
+                if isActive {
+                    Image(systemName: "xmark")
+                        .font(.caption2)
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(isActive ? Color.accentColor : Color(.systemGray5))
+            .foregroundColor(isActive ? .white : .primary)
+            .cornerRadius(12)
+        }
+    }
+}
+
+private struct CollectionGridView: View {
+    let collections: [Collection]
+    
+    var body: some View {
+        LazyVGrid(columns: [
+            GridItem(.adaptive(minimum: 160), spacing: 16)
+        ], spacing: 16) {
+            ForEach(collections, id: \.id) { collection in
+                CollectionCardView(collection: collection)
             }
         }
     }
 }
 
-// MARK: - Previews
-
-#Preview("Refactored Home with Data") {
-    HomeViewRefactored()
-}
-
-#Preview("Refactored Empty State") {
-    HomeViewRefactored()
-        .onAppear {
-            // This would normally clear data, but PreviewSampleViewModel 
-            // already has sample data, so this demonstrates the loaded state
+private struct ItemGridView: View {
+    let items: [Item]
+    
+    var body: some View {
+        LazyVGrid(columns: [
+            GridItem(.adaptive(minimum: 160), spacing: 16)
+        ], spacing: 16) {
+            ForEach(items, id: \.id) { item in
+                ItemCardView(
+                    item: item,
+                    itemRepository: DIContainer.shared.resolve(ItemRepositoryProtocol.self),
+                    collectionRepository: DIContainer.shared.resolve(CollectionRepositoryProtocol.self),
+                    storageRepository: DIContainer.shared.resolve(StorageRepositoryProtocol.self)
+                )
+            }
         }
+    }
 }
 
-#Preview("Refactored Dark Mode") {
-    HomeViewRefactored()
-        .preferredColorScheme(.dark)
-}
+// MARK: - Preview Support
 
-#Preview("Refactored iPad", traits: .landscapeLeft) {
-    HomeViewRefactored()
+#if DEBUG
+struct HomeViewRefactored_Previews: PreviewProvider {
+    static var previews: some View {
+        HomeViewRefactored()
+    }
 }
+#endif
