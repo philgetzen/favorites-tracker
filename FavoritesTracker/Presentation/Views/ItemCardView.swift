@@ -9,7 +9,7 @@ struct ItemCardView: View {
     
     var body: some View {
         NavigationLink(destination: 
-            ItemDetailView(
+            ItemDetailViewRefactored(
                 itemId: item.id,
                 itemRepository: itemRepository,
                 collectionRepository: collectionRepository,

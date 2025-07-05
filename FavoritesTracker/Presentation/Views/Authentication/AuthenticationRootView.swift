@@ -65,7 +65,7 @@ struct AuthenticationRootView: View {
                 SignInView()
                     .tag(AuthTab.signIn)
                 
-                SignUpView()
+                SignUpViewRefactored()
                     .tag(AuthTab.signUp)
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))

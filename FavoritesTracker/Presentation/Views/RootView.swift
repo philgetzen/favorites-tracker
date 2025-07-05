@@ -10,7 +10,7 @@ struct RootView: View {
             case .loading:
                 LoadingView()
             case .authenticated:
-                HomeView()
+                HomeViewRefactored()
             case .unauthenticated:
                 AuthenticationRootView()
             }

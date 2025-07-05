@@ -85,6 +85,14 @@ struct ServiceAssembly {
         
         // Authentication manager
         DIContainer.shared.register(AuthenticationManager.self, instance: AuthenticationManager.shared)
+        
+        // Photo management service
+        DIContainer.shared.register(PhotoManagementServiceProtocol.self, factory: {
+            PhotoManagementService(
+                storageRepository: DIContainer.shared.resolve(StorageRepositoryProtocol.self),
+                configuration: .default
+            )
+        })
     }
 }
 
